@@ -1,0 +1,32 @@
+;; WASI I/O Streams.
+
+(use "typenames.witx")
+
+(module $wasi_ephemeral_io_streams
+  ;;; Linear memory to be accessed by WASI functions that need it.
+  (import "memory" (memory))
+
+  ;;; Read from a file descriptor.
+  ;;; Note: This is similar to `readv` in POSIX.
+  (@interface func (export "read")
+    (param $fd $fd)
+    ;;; List of scatter/gather vectors to which to store data.
+    (param $iovs $iovec_array)
+    ;;; The number of bytes read.
+    (result $error (expected $size (error $errno)))
+  )
+
+  ;;; Write to a file descriptor.
+  ;;; Note: This is similar to `writev` in POSIX.
+  ;;;
+  ;;; Like POSIX, any calls of `write` (and other functions to read or write)
+  ;;; for a regular file by other threads in the WASI process should not be
+  ;;; interleaved while `write` is executed.
+  (@interface func (export "write")
+    (param $fd $fd)
+    ;;; List of scatter/gather vectors from which to retrieve data.
+    (param $iovs $ciovec_array)
+    ;;; The number of bytes written.
+    (result $error (expected $size (error $errno)))
+  )
+)
