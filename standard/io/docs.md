@@ -1222,6 +1222,33 @@ Size: 8
 
 Alignment: 8
 
+## <a href="#input_byte_stream" name="input_byte_stream"></a> `input_byte_stream`: `Handle`
+A handle providing reliable and in-order delivery of a stream of bytes
+from an external source.
+
+Size: 4
+
+Alignment: 4
+
+### Supertypes
+## <a href="#output_byte_stream" name="output_byte_stream"></a> `output_byte_stream`: `Handle`
+A handle providing reliable and in-order delivery of a stream of bytes
+to an external source.
+
+Size: 4
+
+Alignment: 4
+
+### Supertypes
+## <a href="#pseudonym" name="pseudonym"></a> `pseudonym`: `Handle`
+A handle representing the name of a stream. This is opaque, and does
+not expose the actual string.
+
+Size: 4
+
+Alignment: 4
+
+### Supertypes
 # Modules
 ## <a href="#wasi_ephemeral_io_arrays" name="wasi_ephemeral_io_arrays"></a> wasi_ephemeral_io_arrays
 ### Imports
@@ -1421,56 +1448,372 @@ Create a new anonymous array.
 
 ---
 
-#### <a href="#read" name="read"></a> `read(fd: fd, iovs: iovec_array) -> Result<size, errno>`
-Read from a file descriptor.
-Note: This is similar to `readv` in POSIX.
+#### <a href="#read" name="read"></a> `read(source: input_byte_stream, iovs: iovec_array) -> (size, Result<(), errno>)`
+Read bytes from an input byte stream source.
+
+This function may read fewer bytes than requested if it reaches the
+end of a stream or if an error occurs, and returns the number of
+bytes read.
 
 ##### Params
-- <a href="#read.fd" name="read.fd"></a> `fd`: [`fd`](#fd)
+- <a href="#read.source" name="read.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+The input to read from.
 
 - <a href="#read.iovs" name="read.iovs"></a> `iovs`: [`iovec_array`](#iovec_array)
 List of scatter/gather vectors to which to store data.
 
 ##### Results
-- <a href="#read.error" name="read.error"></a> `error`: `Result<size, errno>`
+- <a href="#read.num_read" name="read.num_read"></a> `num_read`: [`size`](#size)
 The number of bytes read.
+
+- <a href="#read.result" name="read.result"></a> `result`: `Result<(), errno>`
+Success or error.
 
 ###### Variant Layout
 - size: 8
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#read.error.ok" name="read.error.ok"></a> `ok`: [`size`](#size)
+- <a href="#read.result.ok" name="read.result.ok"></a> `ok`
 
-- <a href="#read.error.err" name="read.error.err"></a> `err`: [`errno`](#errno)
+- <a href="#read.result.err" name="read.result.err"></a> `err`: [`errno`](#errno)
 
 
 ---
 
-#### <a href="#write" name="write"></a> `write(fd: fd, iovs: ciovec_array) -> Result<size, errno>`
-Write to a file descriptor.
-Note: This is similar to `writev` in POSIX.
+#### <a href="#skip" name="skip"></a> `skip(source: input_byte_stream, len: size) -> (size, Result<(), errno>)`
+Consume bytes from an input byte stream source, discarding the data.
 
-Like POSIX, any calls of [`write`](#write) (and other functions to read or write)
-for a regular file by other threads in the WASI process should not be
-interleaved while [`write`](#write) is executed.
+This function may skip fewer bytes than requested if it reaches the
+end of a stream or if an error occurs, and returns the number of
+bytes skipped.
 
 ##### Params
-- <a href="#write.fd" name="write.fd"></a> `fd`: [`fd`](#fd)
+- <a href="#skip.source" name="skip.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+The input to skip in.
+
+- <a href="#skip.len" name="skip.len"></a> `len`: [`size`](#size)
+The number of bytes to skip over.
+
+##### Results
+- <a href="#skip.num_skipped" name="skip.num_skipped"></a> `num_skipped`: [`size`](#size)
+The number of bytes skipped.
+
+- <a href="#skip.result" name="skip.result"></a> `result`: `Result<(), errno>`
+Success or error.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#skip.result.ok" name="skip.result.ok"></a> `ok`
+
+- <a href="#skip.result.err" name="skip.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#input_media_type" name="input_media_type"></a> `input_media_type(source: input_byte_stream, buf: Pointer<u8>, buf_len: size)`
+Return the [Media Type] string for the input stream.
+
+The Media Type string is purely metadata, and makes no guarantee about
+the validity of the data.
+
+Returns "*/*" if the Media Type is unknown.
+
+[Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+
+##### Params
+- <a href="#input_media_type.source" name="input_media_type.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+
+- <a href="#input_media_type.buf" name="input_media_type.buf"></a> `buf`: `Pointer<u8>`
+The buffer to which to write the contents of the symbolic link.
+The buffer must be at least 255 bytes long.
+
+TODO: Replace this with `(result $result string)` instead.
+
+- <a href="#input_media_type.buf_len" name="input_media_type.buf_len"></a> `buf_len`: [`size`](#size)
+
+##### Results
+
+---
+
+#### <a href="#input_pseudonym" name="input_pseudonym"></a> `input_pseudonym(named: input_byte_stream, where: output_byte_stream) -> pseudonym`
+Return the name for the input byte stream `$named`, as an abstract
+handle, which can be written to the `$where` output byte stream.
+
+This allows the name of the input source to be passed into APIs
+which display the name.
+
+##### Params
+- <a href="#input_pseudonym.named" name="input_pseudonym.named"></a> `named`: [`input_byte_stream`](#input_byte_stream)
+The input byte stream to request a pseudonym for.
+
+- <a href="#input_pseudonym.where" name="input_pseudonym.where"></a> `where`: [`output_byte_stream`](#output_byte_stream)
+The output byte stream that the pseudonym may be written to.
+
+##### Results
+- <a href="#input_pseudonym.name" name="input_pseudonym.name"></a> `name`: [`pseudonym`](#pseudonym)
+The pseudonym.
+
+
+---
+
+#### <a href="#write" name="write"></a> `write(sink: output_byte_stream, iovs: ciovec_array) -> (size, Result<(), errno>)`
+Write to a file descriptor.
+
+This function may write fewer bytes than requested if an error
+occurs, and returns the number of bytes written.
+
+##### Params
+- <a href="#write.sink" name="write.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
 
 - <a href="#write.iovs" name="write.iovs"></a> `iovs`: [`ciovec_array`](#ciovec_array)
 List of scatter/gather vectors from which to retrieve data.
 
 ##### Results
-- <a href="#write.error" name="write.error"></a> `error`: `Result<size, errno>`
+- <a href="#write.num_written" name="write.num_written"></a> `num_written`: [`size`](#size)
 The number of bytes written.
+
+- <a href="#write.result" name="write.result"></a> `result`: `Result<(), errno>`
+Success or error.
 
 ###### Variant Layout
 - size: 8
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#write.error.ok" name="write.error.ok"></a> `ok`: [`size`](#size)
+- <a href="#write.result.ok" name="write.result.ok"></a> `ok`
 
-- <a href="#write.error.err" name="write.error.err"></a> `err`: [`errno`](#errno)
+- <a href="#write.result.err" name="write.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#write_zeros" name="write_zeros"></a> `write_zeros(sink: output_byte_stream, len: size) -> (size, Result<(), errno>)`
+Write zeros to a file descriptor.
+
+This function may write fewer bytes than requested, and returns the
+number of bytes written. fixme
+
+Note: This is analogous to `writev` in POSIX.
+
+Concurrent and otherwise unordered "write" calls to an
+[`output_byte_stream`](#output_byte_stream) handle are executed as if they were called
+serially in a nondeterministic order.
+
+##### Params
+- <a href="#write_zeros.sink" name="write_zeros.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
+
+- <a href="#write_zeros.len" name="write_zeros.len"></a> `len`: [`size`](#size)
+The number of zero bytes to write.
+
+##### Results
+- <a href="#write_zeros.num_written" name="write_zeros.num_written"></a> `num_written`: [`size`](#size)
+The number of bytes written.
+
+- <a href="#write_zeros.result" name="write_zeros.result"></a> `result`: `Result<(), errno>`
+Success or error.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#write_zeros.result.ok" name="write_zeros.result.ok"></a> `ok`
+
+- <a href="#write_zeros.result.err" name="write_zeros.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#flush" name="flush"></a> `flush(sink: output_byte_stream) -> Result<(), errno>`
+Flush any pending output buffers and report any pending errors.
+
+##### Params
+- <a href="#flush.sink" name="flush.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
+
+##### Results
+- <a href="#flush.result" name="flush.result"></a> `result`: `Result<(), errno>`
+Success or error.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#flush.result.ok" name="flush.result.ok"></a> `ok`
+
+- <a href="#flush.result.err" name="flush.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#output_media_type" name="output_media_type"></a> `output_media_type(source: output_byte_stream, buf: Pointer<u8>, buf_len: size)`
+Return the [Media Type] string for the output stream.
+
+The Media Type string is purely metadata, and makes no guarantee about
+the validity of the data.
+
+Returns "*/*" if the Media Type is unknown.
+
+[Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+
+##### Params
+- <a href="#output_media_type.source" name="output_media_type.source"></a> `source`: [`output_byte_stream`](#output_byte_stream)
+
+- <a href="#output_media_type.buf" name="output_media_type.buf"></a> `buf`: `Pointer<u8>`
+The buffer to which to write the contents of the symbolic link.
+The buffer must be at least 255 bytes long.
+
+TODO: Replace this with `(result $result string)` instead.
+
+- <a href="#output_media_type.buf_len" name="output_media_type.buf_len"></a> `buf_len`: [`size`](#size)
+
+##### Results
+
+---
+
+#### <a href="#output_pseudonym" name="output_pseudonym"></a> `output_pseudonym(source: output_byte_stream, where: output_byte_stream) -> pseudonym`
+Return the name for the output byte stream `$named`, as an abstract
+handle, which can be written to the `$where` output byte stream.
+
+This allows the name of the output sink to be passed into APIs
+which display the name.
+
+##### Params
+- <a href="#output_pseudonym.source" name="output_pseudonym.source"></a> `source`: [`output_byte_stream`](#output_byte_stream)
+The output byte stream to request a pseudonym for.
+
+- <a href="#output_pseudonym.where" name="output_pseudonym.where"></a> `where`: [`output_byte_stream`](#output_byte_stream)
+The output byte stream that the pseudonym may be written to.
+
+##### Results
+- <a href="#output_pseudonym.name" name="output_pseudonym.name"></a> `name`: [`pseudonym`](#pseudonym)
+The pseudonym.
+
+
+---
+
+#### <a href="#write_pseudonym" name="write_pseudonym"></a> `write_pseudonym(source: output_byte_stream, name: pseudonym) -> Result<(), errno>`
+Write a pseudonym's nameto the output stream.
+
+This function traps if the pseudonym is not one obtained from calling
+[`input_pseudonym`](#input_pseudonym) or [`output_pseudonym`](#output_pseudonym) with a `$where` parameter of
+`$source`.
+
+This allows the name of the output sink to be passed into APIs
+which display the name in contexts where the name is already
+exposed.
+
+##### Params
+- <a href="#write_pseudonym.source" name="write_pseudonym.source"></a> `source`: [`output_byte_stream`](#output_byte_stream)
+
+- <a href="#write_pseudonym.name" name="write_pseudonym.name"></a> `name`: [`pseudonym`](#pseudonym)
+
+##### Results
+- <a href="#write_pseudonym.result" name="write_pseudonym.result"></a> `result`: `Result<(), errno>`
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#write_pseudonym.result.ok" name="write_pseudonym.result.ok"></a> `ok`
+
+- <a href="#write_pseudonym.result.err" name="write_pseudonym.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#forward" name="forward"></a> `forward(source: input_byte_stream, sink: output_byte_stream) -> (size, size, Result<(), errno>)`
+Forward all the subsequent data from an input stream to an output stream.
+
+##### Params
+- <a href="#forward.source" name="forward.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+The input to read from.
+
+- <a href="#forward.sink" name="forward.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
+
+##### Results
+- <a href="#forward.num_read" name="forward.num_read"></a> `num_read`: [`size`](#size)
+The number of bytes read.
+
+- <a href="#forward.num_written" name="forward.num_written"></a> `num_written`: [`size`](#size)
+The number of bytes written.
+
+- <a href="#forward.result" name="forward.result"></a> `result`: `Result<(), errno>`
+Success or error.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#forward.result.ok" name="forward.result.ok"></a> `ok`
+
+- <a href="#forward.result.err" name="forward.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#forward_n" name="forward_n"></a> `forward_n(source: input_byte_stream, sink: output_byte_stream, len: size) -> (size, size, Result<(), errno>)`
+Forward up to `$n` bytes from an input stream to an output stream.
+
+##### Params
+- <a href="#forward_n.source" name="forward_n.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+The input to read from.
+
+- <a href="#forward_n.sink" name="forward_n.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
+
+- <a href="#forward_n.len" name="forward_n.len"></a> `len`: [`size`](#size)
+The maximum number of bytes to forward.
+
+##### Results
+- <a href="#forward_n.num_read" name="forward_n.num_read"></a> `num_read`: [`size`](#size)
+The number of bytes read.
+
+- <a href="#forward_n.num_written" name="forward_n.num_written"></a> `num_written`: [`size`](#size)
+The number of bytes written.
+
+- <a href="#forward_n.result" name="forward_n.result"></a> `result`: `Result<(), errno>`
+Success or error.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#forward_n.result.ok" name="forward_n.result.ok"></a> `ok`
+
+- <a href="#forward_n.result.err" name="forward_n.result.err"></a> `err`: [`errno`](#errno)
+
+
+---
+
+#### <a href="#pipe" name="pipe"></a> `pipe() -> (input_byte_stream, output_byte_stream)`
+Return an input stream and an output stream where the input is
+transmitted to the output.
+
+##### Params
+##### Results
+- <a href="#pipe.source" name="pipe.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+
+- <a href="#pipe.sink" name="pipe.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+
+
+---
+
+#### <a href="#null" name="null"></a> `null() -> output_byte_stream`
+Return an output stream which discards data sent to it.
+
+##### Params
+##### Results
+- <a href="#null.sink" name="null.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
 
