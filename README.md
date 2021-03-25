@@ -1,5 +1,16 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4323447.svg)](https://doi.org/10.5281/zenodo.4323447)
     
+This repository is a clone of github.com/WebAssembly/WASI/. It is meant for
+discussion, prototype specification and implementation of the I/O Types
+proposal.
+
+For background information, see the slides from the presentation
+introduciong I/O Types to the Subgroup in the [meeting notes].
+
+[meeting notes]: https://github.com/WebAssembly/WASI/blob/main/meetings/2021/WASI-03-25.md#agenda-items
+
+Original README from upstream repo follows...
+
 # WebAssembly System Interface
 
 ![WASI](WASI.png)
