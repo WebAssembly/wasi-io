@@ -100,7 +100,7 @@
     (result $name $pseudonym)
   )
 
-  ;;; Write to a file descriptor.
+  ;;; Write to an output stream.
   ;;;
   ;;; `$num_written` indicates how many bytes were successfully transmitted,
   ;;; which is equal to `$len` on success, or less than `$len` on failure.
@@ -120,7 +120,7 @@
     (result $result (expected (error $errno)))
   )
 
-  ;;; Write zeros to a file descriptor.
+  ;;; Write zeros to an output stream.
   ;;;
   ;;; `$num_written` indicates how many bytes were successfully transmitted,
   ;;; which is equal to `$len` on success, or less than `$len` on failure.
