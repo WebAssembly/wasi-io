@@ -4,7 +4,8 @@
 ;; interface types evolves, and as the I/O Types concepts themselves evolve.
 ;; For example, `iovec_array` will likely be replaced by something else. The
 ;; linear-memory import will go away. typenames.witx will likely be obviated
-;; with better mechanisms for sharing types.
+;; with better mechanisms for sharing types. `$errno` will likely be
+;; replaced by a dedicated error type.
 
 (use "typenames.witx")
 
