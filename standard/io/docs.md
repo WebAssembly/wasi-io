@@ -1249,6 +1249,20 @@ Size: 4
 Alignment: 4
 
 ### Supertypes
+## <a href="#end_of_stream" name="end_of_stream"></a> `end_of_stream`: `Variant`
+A flag indicating whether the end of an input stream has been reached.
+
+Size: 1
+
+Alignment: 1
+
+### Variant cases
+- <a href="#end_of_stream.ready" name="end_of_stream.ready"></a> `ready`
+The end of stream has not yet been reached.
+
+- <a href="#end_of_stream.end" name="end_of_stream.end"></a> `end`
+The end of stream has been reached.
+
 # Modules
 ## <a href="#wasi_ephemeral_io_arrays" name="wasi_ephemeral_io_arrays"></a> wasi_ephemeral_io_arrays
 ### Imports
@@ -1448,12 +1462,16 @@ Create a new anonymous array.
 
 ---
 
-#### <a href="#read" name="read"></a> `read(source: input_byte_stream, iovs: iovec_array) -> (size, Result<(), errno>)`
+#### <a href="#read" name="read"></a> `read(source: input_byte_stream, iovs: iovec_array) -> (size, Result<end_of_stream, errno>)`
 Read bytes from an input byte stream source.
 
-This function may read fewer bytes than requested if it reaches the
-end of a stream or if an error occurs, and returns the number of
-bytes read.
+End-of-stream and errors are "sticky":
+ - On success, this function returns a flag indicating whether the end of
+   the stream was reached. After it is reached, all subsequent [`read`](#read) and
+   [`skip`](#skip) calls always succeed and consume 0 bytes.
+ - On failure, this function returns an error code, and all subsequent
+   [`read`](#read) and [`skip`](#skip) calls always consume 0 bytes and fail with
+   [`errno::badf`](#errno.badf).
 
 ##### Params
 - <a href="#read.source" name="read.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1466,27 +1484,32 @@ List of scatter/gather vectors to which to store data.
 - <a href="#read.num_read" name="read.num_read"></a> `num_read`: [`size`](#size)
 The number of bytes read.
 
-- <a href="#read.result" name="read.result"></a> `result`: `Result<(), errno>`
-Success or error.
+- <a href="#read.result" name="read.result"></a> `result`: `Result<end_of_stream, errno>`
+On success, returns a flag indicating whether the end of the stream was
+encountered. On failure, returns an error code.
 
 ###### Variant Layout
 - size: 8
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#read.result.ok" name="read.result.ok"></a> `ok`
+- <a href="#read.result.ok" name="read.result.ok"></a> `ok`: [`end_of_stream`](#end_of_stream)
 
 - <a href="#read.result.err" name="read.result.err"></a> `err`: [`errno`](#errno)
 
 
 ---
 
-#### <a href="#skip" name="skip"></a> `skip(source: input_byte_stream, len: size) -> (size, Result<(), errno>)`
+#### <a href="#skip" name="skip"></a> `skip(source: input_byte_stream, len: size) -> (size, Result<end_of_stream, errno>)`
 Consume bytes from an input byte stream source, discarding the data.
 
-This function may skip fewer bytes than requested if it reaches the
-end of a stream or if an error occurs, and returns the number of
-bytes skipped.
+End-of-stream and errors are "sticky":
+ - On success, this function returns a flag indicating whether the end of
+   the stream was reached. After it is reached, all subsequent [`read`](#read) and
+   [`skip`](#skip) calls always succeed and consume 0 bytes.
+ - On failure, this function returns an error code, and all subsequent
+   [`read`](#read) and [`skip`](#skip) calls always consume 0 bytes and fail with
+   [`errno::badf`](#errno.badf).
 
 ##### Params
 - <a href="#skip.source" name="skip.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1499,15 +1522,16 @@ The number of bytes to skip over.
 - <a href="#skip.num_skipped" name="skip.num_skipped"></a> `num_skipped`: [`size`](#size)
 The number of bytes skipped.
 
-- <a href="#skip.result" name="skip.result"></a> `result`: `Result<(), errno>`
-Success or error.
+- <a href="#skip.result" name="skip.result"></a> `result`: `Result<end_of_stream, errno>`
+On success, returns a flag indicating whether the end of the stream was
+encountered. On failure, returns an error code.
 
 ###### Variant Layout
 - size: 8
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#skip.result.ok" name="skip.result.ok"></a> `ok`
+- <a href="#skip.result.ok" name="skip.result.ok"></a> `ok`: [`end_of_stream`](#end_of_stream)
 
 - <a href="#skip.result.err" name="skip.result.err"></a> `err`: [`errno`](#errno)
 
@@ -1561,10 +1585,15 @@ The pseudonym.
 ---
 
 #### <a href="#write" name="write"></a> `write(sink: output_byte_stream, iovs: ciovec_array) -> (size, Result<(), errno>)`
-Write to a file descriptor.
+Write to an output stream.
 
-This function may write fewer bytes than requested if an error
-occurs, and returns the number of bytes written.
+`$num_written` indicates how many bytes were successfully transmitted,
+which is equal to `$len` on success, or less than `$len` on failure.
+
+Errors are "sticky":
+ - On failure, this function returns an error code, and all subsequent
+   [`write`](#write) and [`write_zeros`](#write_zeros) calls always write 0 bytes, fail, and
+   return [`errno::badf`](#errno.badf).
 
 ##### Params
 - <a href="#write.sink" name="write.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
@@ -1593,16 +1622,15 @@ Success or error.
 ---
 
 #### <a href="#write_zeros" name="write_zeros"></a> `write_zeros(sink: output_byte_stream, len: size) -> (size, Result<(), errno>)`
-Write zeros to a file descriptor.
+Write zeros to an output stream.
 
-This function may write fewer bytes than requested, and returns the
-number of bytes written. fixme
+`$num_written` indicates how many bytes were successfully transmitted,
+which is equal to `$len` on success, or less than `$len` on failure.
 
-Note: This is analogous to `writev` in POSIX.
-
-Concurrent and otherwise unordered "write" calls to an
-[`output_byte_stream`](#output_byte_stream) handle are executed as if they were called
-serially in a nondeterministic order.
+Errors are "sticky":
+ - On failure, this function returns an error code, and all subsequent
+   [`write`](#write) and [`write_zeros`](#write_zeros) calls always write 0 bytes, fail, and
+   return [`errno::badf`](#errno.badf).
 
 ##### Params
 - <a href="#write_zeros.sink" name="write_zeros.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)

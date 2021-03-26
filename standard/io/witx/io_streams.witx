@@ -1,5 +1,15 @@
 ;; WASI I/O Streams.
 ;;
+;; I/O streams support reliable in-order delivery.
+;; 
+;; Currently this interface only supports streams of bytes, and datagram
+;; sockets and out-of-band messages are not supported. In the future, with
+;; appropriate interface types support, it's expected that this interface
+;; will support streams of arbitrary type as well, which could be implemented
+;; on top of datagram sockets.
+;;
+;; Functions in this API are never return `errno::intr`.
+;;
 ;; Many parts of this file are expected to evolve, as witx evolves, as
 ;; interface types evolves, and as the I/O Types concepts themselves evolve.
 ;; For example, `iovec_array` will likely be replaced by something else. The
@@ -21,6 +31,17 @@
 ;;; not expose the actual string.
 (typename $pseudonym (handle))
 
+;;; A flag indicating whether the end of an input stream has been reached.
+(typename $end_of_stream
+  (enum (@witx tag u8)
+    ;;; The end of stream has not yet been reached.
+    $ready
+
+    ;;; The end of stream has been reached.
+    $end
+  )
+)
+
 (module $wasi_ephemeral_io_streams
   ;;; Linear memory to be accessed by WASI functions that need it.
   (import "memory" (memory))
@@ -28,7 +49,7 @@
   ;;; Read bytes from an input byte stream source.
   ;;;
   ;;; End-of-stream and errors are "sticky":
-  ;;;  - On success, this function returns a bool indicating whether the end of
+  ;;;  - On success, this function returns a flag indicating whether the end of
   ;;;    the stream was reached. After it is reached, all subsequent `read` and
   ;;;    `skip` calls always succeed and consume 0 bytes.
   ;;;  - On failure, this function returns an error code, and all subsequent
@@ -41,15 +62,15 @@
     (param $iovs $iovec_array)
     ;;; The number of bytes read.
     (result $num_read $size)
-    ;;; On success, returns a bool indicating whether the end of the stream was
+    ;;; On success, returns a flag indicating whether the end of the stream was
     ;;; encountered. On failure, returns an error code.
-    (result $result (expected bool (error $errno)))
+    (result $result (expected $end_of_stream (error $errno)))
   )
 
   ;;; Consume bytes from an input byte stream source, discarding the data.
   ;;;
   ;;; End-of-stream and errors are "sticky":
-  ;;;  - On success, this function returns a bool indicating whether the end of
+  ;;;  - On success, this function returns a flag indicating whether the end of
   ;;;    the stream was reached. After it is reached, all subsequent `read` and
   ;;;    `skip` calls always succeed and consume 0 bytes.
   ;;;  - On failure, this function returns an error code, and all subsequent
@@ -62,9 +83,9 @@
     (param $len $size)
     ;;; The number of bytes skipped.
     (result $num_skipped $size)
-    ;;; On success, returns a bool indicating whether the end of the stream was
+    ;;; On success, returns a flag indicating whether the end of the stream was
     ;;; encountered. On failure, returns an error code.
-    (result $result (expected bool (error $errno)))
+    (result $result (expected $end_of_stream (error $errno)))
   )
 
   ;;; Return the [Media Type] string for the input stream.
