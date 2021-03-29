@@ -1713,6 +1713,10 @@ handle, which can be written to the `$where` output byte stream.
 This allows the name of the output sink to be passed into APIs
 which display the name.
 
+TODO: This needs to say something about how the name is displayed.
+Can it include whitespace? Non-printing characters? Quotes?
+Backslashes? What's the encoding? And more.
+
 ##### Params
 - <a href="#output_pseudonym.source" name="output_pseudonym.source"></a> `source`: [`output_byte_stream`](#output_byte_stream)
 The output byte stream to request a pseudonym for.
