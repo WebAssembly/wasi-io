@@ -1,21 +1,18 @@
 ;; WASI I/O Streams.
 ;;
 ;; I/O streams support reliable in-order delivery.
-;; 
+;;
 ;; Currently this interface only supports streams of bytes, and datagram
 ;; sockets and out-of-band messages are not supported. In the future, with
 ;; appropriate interface types support, it's expected that this interface
 ;; will support streams of arbitrary type as well, which could be implemented
 ;; on top of datagram sockets.
 ;;
-;; Functions in this API are never return `errno::intr`.
-;;
 ;; Many parts of this file are expected to evolve, as witx evolves, as
 ;; interface types evolves, and as the I/O Types concepts themselves evolve.
 ;; For example, `iovec_array` will likely be replaced by something else. The
 ;; linear-memory import will go away. typenames.witx will likely be obviated
-;; with better mechanisms for sharing types. `$errno` will likely be
-;; replaced by a dedicated error type.
+;; with better mechanisms for sharing types.
 
 (use "typenames.witx")
 
@@ -31,13 +28,27 @@
 ;;; not expose the actual string.
 (typename $pseudonym (handle))
 
-;;; A flag indicating whether the end of an input stream has been reached.
-(typename $end_of_stream
+;;; The status of a stream after a read.
+(typename $read_status
   (enum (@witx tag u8)
-    ;;; The end of stream has not yet been reached.
+    ;;; The stream is ready for further reads.
+    ;;;
+    ;;; This code also implies that the `$size` returned from a read is equal
+    ;;; to the requested size.
     $ready
 
-    ;;; The end of stream has been reached.
+    ;;; Push - The stream is ready for further reads, however the source has
+    ;;; performed a flush. Consumers are encouraged to process the available
+    ;;; data before attempting further reads.
+    ;;;
+    ;;; This may also indicate that a failure has been detected after some
+    ;;; amount of data has been consumed. The data is returned successfully
+    ;;; with a `$push`, and the next `read` or `skip` call will report the
+    ;;; failure.
+    $push
+
+    ;;; The end of stream has been reached. No further data will be available
+    ;;; and subsequent attempts to read will fail.
     $end
   )
 )
@@ -48,44 +59,40 @@
 
   ;;; Read bytes from an input byte stream source.
   ;;;
-  ;;; End-of-stream and errors are "sticky":
-  ;;;  - On success, this function returns a flag indicating whether the end of
-  ;;;    the stream was reached. After it is reached, all subsequent `read` and
-  ;;;    `skip` calls always succeed and consume 0 bytes.
-  ;;;  - On failure, this function returns an error code, and all subsequent
-  ;;;    `read` and `skip` calls always consume 0 bytes and fail with
-  ;;;    `errno::badf`.
+  ;;; On success, `$size` indicates the number of bytes read, and
+  ;;; `$read_status` indicates the state of the stream.
+  ;;;
+  ;;; When `$read_status` is `$read`, `$size` is equal to the total buffer size
+  ;;; of `$iovs`.
+  ;;;
+  ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
+  ;;; and `skip` on the stream will fail.
   (@interface func (export "read")
     ;;; The input to read from.
     (param $source $input_byte_stream)
     ;;; List of scatter/gather vectors to which to store data.
     (param $iovs $iovec_array)
-    ;;; The number of bytes read.
-    (result $num_read $size)
-    ;;; On success, returns a flag indicating whether the end of the stream was
-    ;;; encountered. On failure, returns an error code.
-    (result $result (expected $end_of_stream (error $errno)))
+    ;;; On success, returns the number of bytes read plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
   )
 
   ;;; Consume bytes from an input byte stream source, discarding the data.
   ;;;
-  ;;; End-of-stream and errors are "sticky":
-  ;;;  - On success, this function returns a flag indicating whether the end of
-  ;;;    the stream was reached. After it is reached, all subsequent `read` and
-  ;;;    `skip` calls always succeed and consume 0 bytes.
-  ;;;  - On failure, this function returns an error code, and all subsequent
-  ;;;    `read` and `skip` calls always consume 0 bytes and fail with
-  ;;;    `errno::badf`.
+  ;;; On success, `$size` indicates the number of bytes read, and
+  ;;; `$read_status` indicates the state of the stream.
+  ;;;
+  ;;; When `$read_status` is `$read`, `$size` is equal to the total buffer size
+  ;;; of `$iovs`.
+  ;;;
+  ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
+  ;;; and `skip` on the stream will fail.
   (@interface func (export "skip")
     ;;; The input to skip in.
     (param $source $input_byte_stream)
     ;;; The number of bytes to skip over.
     (param $len $size)
-    ;;; The number of bytes skipped.
-    (result $num_skipped $size)
-    ;;; On success, returns a flag indicating whether the end of the stream was
-    ;;; encountered. On failure, returns an error code.
-    (result $result (expected $end_of_stream (error $errno)))
+    ;;; On success, returns the number of bytes read plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
   )
 
   ;;; Return the [Media Type] string for the input stream.
@@ -123,42 +130,28 @@
 
   ;;; Write to an output stream.
   ;;;
-  ;;; `$num_written` indicates how many bytes were successfully transmitted,
-  ;;; which is equal to `$len` on success, or less than `$len` on failure.
-  ;;;
-  ;;; Errors are "sticky":
-  ;;;  - On failure, this function returns an error code, and all subsequent
-  ;;;    `write` and `write_zeros` calls always write 0 bytes, fail, and
-  ;;;    return `errno::badf`.
+  ;;; On failure, subsequent calls to `write`, `write_zeros`, or
+  ;;; `write_pseudonym` on the stream will fail.
   (@interface func (export "write")
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; List of scatter/gather vectors from which to retrieve data.
     (param $iovs $ciovec_array)
-    ;;; The number of bytes written.
-    (result $num_written $size)
-    ;;; Success or error.
-    (result $result (expected (error $errno)))
+    ;;; Indicate success or failure.
+    (result $result (expected (error)))
   )
 
   ;;; Write zeros to an output stream.
   ;;;
-  ;;; `$num_written` indicates how many bytes were successfully transmitted,
-  ;;; which is equal to `$len` on success, or less than `$len` on failure.
-  ;;;
-  ;;; Errors are "sticky":
-  ;;;  - On failure, this function returns an error code, and all subsequent
-  ;;;    `write` and `write_zeros` calls always write 0 bytes, fail, and
-  ;;;    return `errno::badf`.
+  ;;; On failure, subsequent calls to `write`, `write_zeros`, or
+  ;;; `write_pseudonym` on the stream will fail.
   (@interface func (export "write_zeros")
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; The number of zero bytes to write.
     (param $len $size)
-    ;;; The number of bytes written.
-    (result $num_written $size)
-    ;;; Success or error.
-    (result $result (expected (error $errno)))
+    ;;; Indicate success or failure.
+    (result $result (expected (error)))
   )
 
   ;;; Flush any pending output buffers and report any pending errors.
@@ -166,7 +159,7 @@
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; Success or error.
-    (result $result (expected (error $errno)))
+    (result $result (expected (error)))
   )
 
   ;;; Return the [Media Type] string for the output stream.
@@ -218,7 +211,7 @@
   (@interface func (export "write_pseudonym")
     (param $source $output_byte_stream)
     (param $name $pseudonym)
-    (result $result (expected (error $errno)))
+    (result $result (expected (error)))
   )
 
   ;;; Forward all the subsequent data from an input stream to an output stream.

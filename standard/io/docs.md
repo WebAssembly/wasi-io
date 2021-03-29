@@ -1249,19 +1249,33 @@ Size: 4
 Alignment: 4
 
 ### Supertypes
-## <a href="#end_of_stream" name="end_of_stream"></a> `end_of_stream`: `Variant`
-A flag indicating whether the end of an input stream has been reached.
+## <a href="#read_status" name="read_status"></a> `read_status`: `Variant`
+The status of a stream after a read.
 
 Size: 1
 
 Alignment: 1
 
 ### Variant cases
-- <a href="#end_of_stream.ready" name="end_of_stream.ready"></a> `ready`
-The end of stream has not yet been reached.
+- <a href="#read_status.ready" name="read_status.ready"></a> `ready`
+The stream is ready for further reads.
 
-- <a href="#end_of_stream.end" name="end_of_stream.end"></a> `end`
-The end of stream has been reached.
+This code also implies that the `$size` returned from a read is equal
+to the requested size.
+
+- <a href="#read_status.push" name="read_status.push"></a> `push`
+Push - The stream is ready for further reads, however the source has
+performed a flush. Consumers are encouraged to process the available
+data before attempting further reads.
+
+This may also indicate that a failure has been detected after some
+amount of data has been consumed. The data is returned successfully
+with a `$push`, and the next [`read`](#read) or [`skip`](#skip) call will report the
+failure.
+
+- <a href="#read_status.end" name="read_status.end"></a> `end`
+The end of stream has been reached. No further data will be available
+and subsequent attempts to read will fail.
 
 # Modules
 ## <a href="#wasi_ephemeral_io_arrays" name="wasi_ephemeral_io_arrays"></a> wasi_ephemeral_io_arrays
@@ -1462,16 +1476,17 @@ Create a new anonymous array.
 
 ---
 
-#### <a href="#read" name="read"></a> `read(source: input_byte_stream, iovs: iovec_array) -> (size, Result<end_of_stream, errno>)`
+#### <a href="#read" name="read"></a> `read(source: input_byte_stream, iovs: iovec_array) -> Result<(size, read_status), ()>`
 Read bytes from an input byte stream source.
 
-End-of-stream and errors are "sticky":
- - On success, this function returns a flag indicating whether the end of
-   the stream was reached. After it is reached, all subsequent [`read`](#read) and
-   [`skip`](#skip) calls always succeed and consume 0 bytes.
- - On failure, this function returns an error code, and all subsequent
-   [`read`](#read) and [`skip`](#skip) calls always consume 0 bytes and fail with
-   [`errno::badf`](#errno.badf).
+On success, `$size` indicates the number of bytes read, and
+`$read_status` indicates the state of the stream.
+
+When `$read_status` is `$read`, `$size` is equal to the total buffer size
+of `$iovs`.
+
+When `$read_status` is `$end`, or on failure, subsequent calls to [`read`](#read)
+and [`skip`](#skip) on the stream will fail.
 
 ##### Params
 - <a href="#read.source" name="read.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1481,35 +1496,41 @@ The input to read from.
 List of scatter/gather vectors to which to store data.
 
 ##### Results
-- <a href="#read.num_read" name="read.num_read"></a> `num_read`: [`size`](#size)
-The number of bytes read.
-
-- <a href="#read.result" name="read.result"></a> `result`: `Result<end_of_stream, errno>`
-On success, returns a flag indicating whether the end of the stream was
-encountered. On failure, returns an error code.
+- <a href="#read.result" name="read.result"></a> `result`: `Result<(size, read_status), ()>`
+On success, returns the number of bytes read plus the stream status.
 
 ###### Variant Layout
-- size: 8
+- size: 12
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#read.result.ok" name="read.result.ok"></a> `ok`: [`end_of_stream`](#end_of_stream)
+- <a href="#read.result.ok" name="read.result.ok"></a> `ok`: `(size, read_status)`
 
-- <a href="#read.result.err" name="read.result.err"></a> `err`: [`errno`](#errno)
+####### Record members
+- <a href="#read.result.ok.0" name="read.result.ok.0"></a> `0`: [`size`](#size)
+
+Offset: 0
+
+- <a href="#read.result.ok.1" name="read.result.ok.1"></a> `1`: [`read_status`](#read_status)
+
+Offset: 4
+
+- <a href="#read.result.err" name="read.result.err"></a> `err`
 
 
 ---
 
-#### <a href="#skip" name="skip"></a> `skip(source: input_byte_stream, len: size) -> (size, Result<end_of_stream, errno>)`
+#### <a href="#skip" name="skip"></a> `skip(source: input_byte_stream, len: size) -> Result<(size, read_status), ()>`
 Consume bytes from an input byte stream source, discarding the data.
 
-End-of-stream and errors are "sticky":
- - On success, this function returns a flag indicating whether the end of
-   the stream was reached. After it is reached, all subsequent [`read`](#read) and
-   [`skip`](#skip) calls always succeed and consume 0 bytes.
- - On failure, this function returns an error code, and all subsequent
-   [`read`](#read) and [`skip`](#skip) calls always consume 0 bytes and fail with
-   [`errno::badf`](#errno.badf).
+On success, `$size` indicates the number of bytes read, and
+`$read_status` indicates the state of the stream.
+
+When `$read_status` is `$read`, `$size` is equal to the total buffer size
+of `$iovs`.
+
+When `$read_status` is `$end`, or on failure, subsequent calls to [`read`](#read)
+and [`skip`](#skip) on the stream will fail.
 
 ##### Params
 - <a href="#skip.source" name="skip.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1519,21 +1540,26 @@ The input to skip in.
 The number of bytes to skip over.
 
 ##### Results
-- <a href="#skip.num_skipped" name="skip.num_skipped"></a> `num_skipped`: [`size`](#size)
-The number of bytes skipped.
-
-- <a href="#skip.result" name="skip.result"></a> `result`: `Result<end_of_stream, errno>`
-On success, returns a flag indicating whether the end of the stream was
-encountered. On failure, returns an error code.
+- <a href="#skip.result" name="skip.result"></a> `result`: `Result<(size, read_status), ()>`
+On success, returns the number of bytes read plus the stream status.
 
 ###### Variant Layout
-- size: 8
+- size: 12
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#skip.result.ok" name="skip.result.ok"></a> `ok`: [`end_of_stream`](#end_of_stream)
+- <a href="#skip.result.ok" name="skip.result.ok"></a> `ok`: `(size, read_status)`
 
-- <a href="#skip.result.err" name="skip.result.err"></a> `err`: [`errno`](#errno)
+####### Record members
+- <a href="#skip.result.ok.0" name="skip.result.ok.0"></a> `0`: [`size`](#size)
+
+Offset: 0
+
+- <a href="#skip.result.ok.1" name="skip.result.ok.1"></a> `1`: [`read_status`](#read_status)
+
+Offset: 4
+
+- <a href="#skip.result.err" name="skip.result.err"></a> `err`
 
 
 ---
@@ -1584,16 +1610,11 @@ The pseudonym.
 
 ---
 
-#### <a href="#write" name="write"></a> `write(sink: output_byte_stream, iovs: ciovec_array) -> (size, Result<(), errno>)`
+#### <a href="#write" name="write"></a> `write(sink: output_byte_stream, iovs: ciovec_array) -> Result<(), ()>`
 Write to an output stream.
 
-`$num_written` indicates how many bytes were successfully transmitted,
-which is equal to `$len` on success, or less than `$len` on failure.
-
-Errors are "sticky":
- - On failure, this function returns an error code, and all subsequent
-   [`write`](#write) and [`write_zeros`](#write_zeros) calls always write 0 bytes, fail, and
-   return [`errno::badf`](#errno.badf).
+On failure, subsequent calls to [`write`](#write), [`write_zeros`](#write_zeros), or
+[`write_pseudonym`](#write_pseudonym) on the stream will fail.
 
 ##### Params
 - <a href="#write.sink" name="write.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
@@ -1603,34 +1624,22 @@ The output to write to.
 List of scatter/gather vectors from which to retrieve data.
 
 ##### Results
-- <a href="#write.num_written" name="write.num_written"></a> `num_written`: [`size`](#size)
-The number of bytes written.
+- <a href="#write.result" name="write.result"></a> `result`: `Result<(), ()>`
+Indicate success or failure.
 
-- <a href="#write.result" name="write.result"></a> `result`: `Result<(), errno>`
-Success or error.
-
-###### Variant Layout
-- size: 8
-- align: 4
-- tag_size: 4
 ###### Variant cases
 - <a href="#write.result.ok" name="write.result.ok"></a> `ok`
 
-- <a href="#write.result.err" name="write.result.err"></a> `err`: [`errno`](#errno)
+- <a href="#write.result.err" name="write.result.err"></a> `err`
 
 
 ---
 
-#### <a href="#write_zeros" name="write_zeros"></a> `write_zeros(sink: output_byte_stream, len: size) -> (size, Result<(), errno>)`
+#### <a href="#write_zeros" name="write_zeros"></a> `write_zeros(sink: output_byte_stream, len: size) -> Result<(), ()>`
 Write zeros to an output stream.
 
-`$num_written` indicates how many bytes were successfully transmitted,
-which is equal to `$len` on success, or less than `$len` on failure.
-
-Errors are "sticky":
- - On failure, this function returns an error code, and all subsequent
-   [`write`](#write) and [`write_zeros`](#write_zeros) calls always write 0 bytes, fail, and
-   return [`errno::badf`](#errno.badf).
+On failure, subsequent calls to [`write`](#write), [`write_zeros`](#write_zeros), or
+[`write_pseudonym`](#write_pseudonym) on the stream will fail.
 
 ##### Params
 - <a href="#write_zeros.sink" name="write_zeros.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
@@ -1640,25 +1649,18 @@ The output to write to.
 The number of zero bytes to write.
 
 ##### Results
-- <a href="#write_zeros.num_written" name="write_zeros.num_written"></a> `num_written`: [`size`](#size)
-The number of bytes written.
+- <a href="#write_zeros.result" name="write_zeros.result"></a> `result`: `Result<(), ()>`
+Indicate success or failure.
 
-- <a href="#write_zeros.result" name="write_zeros.result"></a> `result`: `Result<(), errno>`
-Success or error.
-
-###### Variant Layout
-- size: 8
-- align: 4
-- tag_size: 4
 ###### Variant cases
 - <a href="#write_zeros.result.ok" name="write_zeros.result.ok"></a> `ok`
 
-- <a href="#write_zeros.result.err" name="write_zeros.result.err"></a> `err`: [`errno`](#errno)
+- <a href="#write_zeros.result.err" name="write_zeros.result.err"></a> `err`
 
 
 ---
 
-#### <a href="#flush" name="flush"></a> `flush(sink: output_byte_stream) -> Result<(), errno>`
+#### <a href="#flush" name="flush"></a> `flush(sink: output_byte_stream) -> Result<(), ()>`
 Flush any pending output buffers and report any pending errors.
 
 ##### Params
@@ -1666,17 +1668,13 @@ Flush any pending output buffers and report any pending errors.
 The output to write to.
 
 ##### Results
-- <a href="#flush.result" name="flush.result"></a> `result`: `Result<(), errno>`
+- <a href="#flush.result" name="flush.result"></a> `result`: `Result<(), ()>`
 Success or error.
 
-###### Variant Layout
-- size: 8
-- align: 4
-- tag_size: 4
 ###### Variant cases
 - <a href="#flush.result.ok" name="flush.result.ok"></a> `ok`
 
-- <a href="#flush.result.err" name="flush.result.err"></a> `err`: [`errno`](#errno)
+- <a href="#flush.result.err" name="flush.result.err"></a> `err`
 
 
 ---
@@ -1731,7 +1729,7 @@ The pseudonym.
 
 ---
 
-#### <a href="#write_pseudonym" name="write_pseudonym"></a> `write_pseudonym(source: output_byte_stream, name: pseudonym) -> Result<(), errno>`
+#### <a href="#write_pseudonym" name="write_pseudonym"></a> `write_pseudonym(source: output_byte_stream, name: pseudonym) -> Result<(), ()>`
 Write a pseudonym's nameto the output stream.
 
 This function traps if the pseudonym is not one obtained from calling
@@ -1748,16 +1746,12 @@ exposed.
 - <a href="#write_pseudonym.name" name="write_pseudonym.name"></a> `name`: [`pseudonym`](#pseudonym)
 
 ##### Results
-- <a href="#write_pseudonym.result" name="write_pseudonym.result"></a> `result`: `Result<(), errno>`
+- <a href="#write_pseudonym.result" name="write_pseudonym.result"></a> `result`: `Result<(), ()>`
 
-###### Variant Layout
-- size: 8
-- align: 4
-- tag_size: 4
 ###### Variant cases
 - <a href="#write_pseudonym.result.ok" name="write_pseudonym.result.ok"></a> `ok`
 
-- <a href="#write_pseudonym.result.err" name="write_pseudonym.result.err"></a> `err`: [`errno`](#errno)
+- <a href="#write_pseudonym.result.err" name="write_pseudonym.result.err"></a> `err`
 
 
 ---
