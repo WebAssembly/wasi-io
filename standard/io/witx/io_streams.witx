@@ -215,20 +215,22 @@
   )
 
   ;;; Forward all the subsequent data from an input stream to an output stream.
+  ;;;
+  ;;; If a failure occurs on the output stream, the remaining data from the
+  ;;; input stream is consumed and discarded.
   (@interface func (export "forward")
     ;;; The input to read from.
     (param $source $input_byte_stream)
     ;;; The output to write to.
     (param $sink $output_byte_stream)
-    ;;; The number of bytes read.
-    (result $num_read $size)
-    ;;; The number of bytes written.
-    (result $num_written $size)
-    ;;; Success or error.
-    (result $result (expected (error $errno)))
+    ;;; On success, return the number of bytes forwarded.
+    (result $result (expected $size (error)))
   )
 
   ;;; Forward up to `$n` bytes from an input stream to an output stream.
+  ;;;
+  ;;; If a failure occurs on the output stream, the remaining data from the
+  ;;; input stream is consumed and discarded.
   (@interface func (export "forward_n")
     ;;; The input to read from.
     (param $source $input_byte_stream)
@@ -236,12 +238,8 @@
     (param $sink $output_byte_stream)
     ;;; The maximum number of bytes to forward.
     (param $len $size)
-    ;;; The number of bytes read.
-    (result $num_read $size)
-    ;;; The number of bytes written.
-    (result $num_written $size)
-    ;;; Success or error.
-    (result $result (expected (error $errno)))
+    ;;; On success, returns the number of bytes forwarded plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
   )
 
   ;;; Return an input stream and an output stream where the input is

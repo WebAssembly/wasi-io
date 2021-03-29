@@ -1756,8 +1756,11 @@ exposed.
 
 ---
 
-#### <a href="#forward" name="forward"></a> `forward(source: input_byte_stream, sink: output_byte_stream) -> (size, size, Result<(), errno>)`
+#### <a href="#forward" name="forward"></a> `forward(source: input_byte_stream, sink: output_byte_stream) -> Result<size, ()>`
 Forward all the subsequent data from an input stream to an output stream.
+
+If a failure occurs on the output stream, the remaining data from the
+input stream is consumed and discarded.
 
 ##### Params
 - <a href="#forward.source" name="forward.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1767,29 +1770,26 @@ The input to read from.
 The output to write to.
 
 ##### Results
-- <a href="#forward.num_read" name="forward.num_read"></a> `num_read`: [`size`](#size)
-The number of bytes read.
-
-- <a href="#forward.num_written" name="forward.num_written"></a> `num_written`: [`size`](#size)
-The number of bytes written.
-
-- <a href="#forward.result" name="forward.result"></a> `result`: `Result<(), errno>`
-Success or error.
+- <a href="#forward.result" name="forward.result"></a> `result`: `Result<size, ()>`
+On success, return the number of bytes forwarded.
 
 ###### Variant Layout
 - size: 8
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#forward.result.ok" name="forward.result.ok"></a> `ok`
+- <a href="#forward.result.ok" name="forward.result.ok"></a> `ok`: [`size`](#size)
 
-- <a href="#forward.result.err" name="forward.result.err"></a> `err`: [`errno`](#errno)
+- <a href="#forward.result.err" name="forward.result.err"></a> `err`
 
 
 ---
 
-#### <a href="#forward_n" name="forward_n"></a> `forward_n(source: input_byte_stream, sink: output_byte_stream, len: size) -> (size, size, Result<(), errno>)`
+#### <a href="#forward_n" name="forward_n"></a> `forward_n(source: input_byte_stream, sink: output_byte_stream, len: size) -> Result<(size, read_status), ()>`
 Forward up to `$n` bytes from an input stream to an output stream.
+
+If a failure occurs on the output stream, the remaining data from the
+input stream is consumed and discarded.
 
 ##### Params
 - <a href="#forward_n.source" name="forward_n.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
@@ -1802,23 +1802,26 @@ The output to write to.
 The maximum number of bytes to forward.
 
 ##### Results
-- <a href="#forward_n.num_read" name="forward_n.num_read"></a> `num_read`: [`size`](#size)
-The number of bytes read.
-
-- <a href="#forward_n.num_written" name="forward_n.num_written"></a> `num_written`: [`size`](#size)
-The number of bytes written.
-
-- <a href="#forward_n.result" name="forward_n.result"></a> `result`: `Result<(), errno>`
-Success or error.
+- <a href="#forward_n.result" name="forward_n.result"></a> `result`: `Result<(size, read_status), ()>`
+On success, returns the number of bytes forwarded plus the stream status.
 
 ###### Variant Layout
-- size: 8
+- size: 12
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#forward_n.result.ok" name="forward_n.result.ok"></a> `ok`
+- <a href="#forward_n.result.ok" name="forward_n.result.ok"></a> `ok`: `(size, read_status)`
 
-- <a href="#forward_n.result.err" name="forward_n.result.err"></a> `err`: [`errno`](#errno)
+####### Record members
+- <a href="#forward_n.result.ok.0" name="forward_n.result.ok.0"></a> `0`: [`size`](#size)
+
+Offset: 0
+
+- <a href="#forward_n.result.ok.1" name="forward_n.result.ok.1"></a> `1`: [`read_status`](#read_status)
+
+Offset: 4
+
+- <a href="#forward_n.result.err" name="forward_n.result.err"></a> `err`
 
 
 ---
