@@ -62,7 +62,7 @@
   ;;; On success, `$size` indicates the number of bytes read, and
   ;;; `$read_status` indicates the state of the stream.
   ;;;
-  ;;; When `$read_status` is `$read`, `$size` is equal to the total buffer size
+  ;;; When `$read_status` is `$ready`, `$size` is equal to the total buffer size
   ;;; of `$iovs`.
   ;;;
   ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
@@ -81,7 +81,7 @@
   ;;; On success, `$size` indicates the number of bytes read, and
   ;;; `$read_status` indicates the state of the stream.
   ;;;
-  ;;; When `$read_status` is `$read`, `$size` is equal to the total buffer size
+  ;;; When `$read_status` is `$ready`, `$size` is equal to the total buffer size
   ;;; of `$iovs`.
   ;;;
   ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
@@ -199,7 +199,7 @@
     (result $name $pseudonym)
   )
 
-  ;;; Write a pseudonym's nameto the output stream.
+  ;;; Write a pseudonym's name to the output stream.
   ;;;
   ;;; This function traps if the pseudonym is not one obtained from calling
   ;;; `input_pseudonym` or `output_pseudonym` with a `$where` parameter of
@@ -209,8 +209,11 @@
   ;;; which display the name in contexts where the name is already
   ;;; exposed.
   (@interface func (export "write_pseudonym")
+    ;;; The output to write to.
     (param $source $output_byte_stream)
+    ;;; The pseudonym representing the name to write.
     (param $name $pseudonym)
+    ;;; Indicate success or failure.
     (result $result (expected (error)))
   )
 
@@ -227,7 +230,7 @@
     (result $result (expected $size (error)))
   )
 
-  ;;; Forward up to `$n` bytes from an input stream to an output stream.
+  ;;; Forward up to `$len` bytes from an input stream to an output stream.
   ;;;
   ;;; If a failure occurs on the output stream, the remaining data from the
   ;;; input stream is consumed and discarded.
@@ -245,12 +248,15 @@
   ;;; Return an input stream and an output stream where the input is
   ;;; transmitted to the output.
   (@interface func (export "pipe")
+    ;;; A stream for reading from the created pipe.
     (result $source $input_byte_stream)
+    ;;; A stream for writing to the created pipe.
     (result $sink $output_byte_stream)
   )
 
   ;;; Return an output stream which discards data sent to it.
   (@interface func (export "null")
+    ;;; A stream for writing bytes to be discarded.
     (result $sink $output_byte_stream)
   )
 )

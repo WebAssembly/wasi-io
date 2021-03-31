@@ -1482,7 +1482,7 @@ Read bytes from an input byte stream source.
 On success, `$size` indicates the number of bytes read, and
 `$read_status` indicates the state of the stream.
 
-When `$read_status` is `$read`, `$size` is equal to the total buffer size
+When `$read_status` is `$ready`, `$size` is equal to the total buffer size
 of `$iovs`.
 
 When `$read_status` is `$end`, or on failure, subsequent calls to [`read`](#read)
@@ -1526,7 +1526,7 @@ Consume bytes from an input byte stream source, discarding the data.
 On success, `$size` indicates the number of bytes read, and
 `$read_status` indicates the state of the stream.
 
-When `$read_status` is `$read`, `$size` is equal to the total buffer size
+When `$read_status` is `$ready`, `$size` is equal to the total buffer size
 of `$iovs`.
 
 When `$read_status` is `$end`, or on failure, subsequent calls to [`read`](#read)
@@ -1730,7 +1730,7 @@ The pseudonym.
 ---
 
 #### <a href="#write_pseudonym" name="write_pseudonym"></a> `write_pseudonym(source: output_byte_stream, name: pseudonym) -> Result<(), ()>`
-Write a pseudonym's nameto the output stream.
+Write a pseudonym's name to the output stream.
 
 This function traps if the pseudonym is not one obtained from calling
 [`input_pseudonym`](#input_pseudonym) or [`output_pseudonym`](#output_pseudonym) with a `$where` parameter of
@@ -1742,11 +1742,14 @@ exposed.
 
 ##### Params
 - <a href="#write_pseudonym.source" name="write_pseudonym.source"></a> `source`: [`output_byte_stream`](#output_byte_stream)
+The output to write to.
 
 - <a href="#write_pseudonym.name" name="write_pseudonym.name"></a> `name`: [`pseudonym`](#pseudonym)
+The pseudonym representing the name to write.
 
 ##### Results
 - <a href="#write_pseudonym.result" name="write_pseudonym.result"></a> `result`: `Result<(), ()>`
+Indicate success or failure.
 
 ###### Variant cases
 - <a href="#write_pseudonym.result.ok" name="write_pseudonym.result.ok"></a> `ok`
@@ -1786,7 +1789,7 @@ On success, return the number of bytes forwarded.
 ---
 
 #### <a href="#forward_n" name="forward_n"></a> `forward_n(source: input_byte_stream, sink: output_byte_stream, len: size) -> Result<(size, read_status), ()>`
-Forward up to `$n` bytes from an input stream to an output stream.
+Forward up to `$len` bytes from an input stream to an output stream.
 
 If a failure occurs on the output stream, the remaining data from the
 input stream is consumed and discarded.
@@ -1833,8 +1836,10 @@ transmitted to the output.
 ##### Params
 ##### Results
 - <a href="#pipe.source" name="pipe.source"></a> `source`: [`input_byte_stream`](#input_byte_stream)
+A stream for reading from the created pipe.
 
 - <a href="#pipe.sink" name="pipe.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+A stream for writing to the created pipe.
 
 
 ---
@@ -1845,4 +1850,5 @@ Return an output stream which discards data sent to it.
 ##### Params
 ##### Results
 - <a href="#null.sink" name="null.sink"></a> `sink`: [`output_byte_stream`](#output_byte_stream)
+A stream for writing bytes to be discarded.
 
