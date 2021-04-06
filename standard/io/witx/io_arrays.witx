@@ -2,48 +2,108 @@
 
 (use "typenames.witx")
 
+;;; A handle providing random access to a dynamic array of bytes
+;;; provided by an external source.
+(typename $array (handle))
+
+;;; A size of or offset into an array.
+(typename $arraysize u64)
+
 (module $wasi_ephemeral_io_arrays
   ;;; Linear memory to be accessed by WASI functions that need it.
   (import "memory" (memory))
 
-  ;;; Provide file advisory information on a file descriptor.
-  ;;; Note: This is similar to `posix_fadvise` in POSIX.
+  ;;; Provide array advisory information.
   (@interface func (export "advise")
-    (param $fd $fd)
-    ;;; The offset within the file to which the advisory applies.
-    (param $offset $filesize)
+    (param $array $array)
+    ;;; The offset within the array to which the advisory applies.
+    (param $offset $arraysize)
     ;;; The length of the region to which the advisory applies.
-    (param $len $filesize)
+    (param $len $arraysize)
     ;;; The advice.
     (param $advice $advice)
-    (result $error (expected (error $errno)))
   )
 
-  ;;; Read from a file descriptor, without using and updating the file descriptor's offset.
-  ;;; Note: This is similar to `preadv` in Linux (and other Unix-es).
-  (@interface func (export "pread")
-    (param $fd $fd)
+  ;;; Read bytes from an array at a specified offset.
+  (@interface func (export "read_at")
+    (param $array $array)
     ;;; List of scatter/gather vectors in which to store data.
     (param $iovs $iovec_array)
-    ;;; The offset within the file at which to read.
-    (param $offset $filesize)
+    ;;; The offset within the array at which to read.
+    (param $offset $arraysize)
     ;;; The number of bytes read.
-    (result $error (expected $size (error $errno)))
+    (result $error (expected $size (error)))
   )
 
-  ;;; Write to a file descriptor, without using and updating the file descriptor's offset.
-  ;;; Note: This is similar to `pwritev` in Linux (and other Unix-es).
-  ;;;
-  ;;; Like Linux (and other Unix-es), any calls of `pwrite` (and other
-  ;;; functions to read or write) for a regular file by other threads in the
-  ;;; WASI process should not be interleaved while `pwrite` is executed.
-  (@interface func (export "pwrite")
-    (param $fd $fd)
+  ;;; Write bytes to an array at a specified offset.
+  (@interface func (export "write_at")
+    (param $array $array)
     ;;; List of scatter/gather vectors from which to retrieve data.
     (param $iovs $ciovec_array)
-    ;;; The offset within the file at which to write.
-    (param $offset $filesize)
+    ;;; The offset within the array at which to write.
+    (param $offset $arraysize)
     ;;; The number of bytes written.
-    (result $error (expected $size (error $errno)))
+    (result $error (expected $size (error)))
   )
+
+  ;;; Return the current length of the array.
+  (@interface func (export "len")
+    (param $array $array)
+    ;;; On success, the length of the array.
+    (result $result (expected $size (error)))
+  )
+
+  ;;; Set the current length of the array, either by truncating it at the end
+  ;;; or by extending it at the end with zeros.
+  (@interface func (export "set_len")
+    (param $array $array)
+    ;;; The length to set.
+    (param $len $size)
+    ;;; Success or failure.
+    (result $error (expected (error)))
+  )
+
+  ;;; Return the [Media Type] string for the input stream.
+  ;;;
+  ;;; The Media Type string is purely metadata, and makes no guarantee about
+  ;;; the validity of the data.
+  ;;;
+  ;;; Returns "*/*" if the Media Type is unknown.
+  ;;;
+  ;;; [Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+  (@interface func (export "media_type")
+    (param $array $array)
+
+    ;;; The buffer to which to write the contents of the symbolic link.
+    ;;; The buffer must be at least 255 bytes long.
+    ;;;
+    ;;; TODO: Replace this with `(result $result string)` instead.
+    (param $buf (@witx pointer (@witx char8)))
+    (param $buf_len $size)
+  )
+
+  ;; TODO: Define pseudonym once we have a common pseudonym type to share.
+  ;;(@interface func (export "pseudonym"))
+
+  ;;; Copy bytes from an input array into an output array.
+  (@interface func (export "copy")
+    (param $input $array)
+    (param $output $array)
+    ;;; The offset within the input array at which to read.
+    (param $input_offset $arraysize)
+    ;;; The offset within the output array at which to write.
+    (param $output_offset $arraysize)
+    ;;; The number of bytes to copy.
+    (param $input_size $arraysize)
+    ;;; The number of bytes written.
+    (result $error (expected $size (error)))
+  )
+
+  ;;; Create a new anonymous array.
+  (@interface func (export "anonymous")
+    (result $array $array)
+  )
+
+  ;; TODO: Define from_stream once we have can easily share handle types.
+  ;;(@interface func (export "from_stream"))
 )

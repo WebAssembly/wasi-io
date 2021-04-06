@@ -1206,6 +1206,22 @@ Alignment: 4
 - <a href="#prestat.dir" name="prestat.dir"></a> `dir`: [`prestat_dir`](#prestat_dir)
 When type is [`preopentype::dir`](#preopentype.dir):
 
+## <a href="#array" name="array"></a> `array`: `Handle`
+A handle providing random access to a dynamic array of bytes
+provided by an external source.
+
+Size: 4
+
+Alignment: 4
+
+### Supertypes
+## <a href="#arraysize" name="arraysize"></a> `arraysize`: `u64`
+A size of or offset into an array.
+
+Size: 8
+
+Alignment: 8
+
 # Modules
 ## <a href="#wasi_ephemeral_io_arrays" name="wasi_ephemeral_io_arrays"></a> wasi_ephemeral_io_arrays
 ### Imports
@@ -1214,52 +1230,39 @@ When type is [`preopentype::dir`](#preopentype.dir):
 
 ---
 
-#### <a href="#advise" name="advise"></a> `advise(fd: fd, offset: filesize, len: filesize, advice: advice) -> Result<(), errno>`
-Provide file advisory information on a file descriptor.
-Note: This is similar to `posix_fadvise` in POSIX.
+#### <a href="#advise" name="advise"></a> `advise(array: array, offset: arraysize, len: arraysize, advice: advice)`
+Provide array advisory information.
 
 ##### Params
-- <a href="#advise.fd" name="advise.fd"></a> `fd`: [`fd`](#fd)
+- <a href="#advise.array" name="advise.array"></a> `array`: [`array`](#array)
 
-- <a href="#advise.offset" name="advise.offset"></a> `offset`: [`filesize`](#filesize)
-The offset within the file to which the advisory applies.
+- <a href="#advise.offset" name="advise.offset"></a> `offset`: [`arraysize`](#arraysize)
+The offset within the array to which the advisory applies.
 
-- <a href="#advise.len" name="advise.len"></a> `len`: [`filesize`](#filesize)
+- <a href="#advise.len" name="advise.len"></a> `len`: [`arraysize`](#arraysize)
 The length of the region to which the advisory applies.
 
 - <a href="#advise.advice" name="advise.advice"></a> `advice`: [`advice`](#advice)
 The advice.
 
 ##### Results
-- <a href="#advise.error" name="advise.error"></a> `error`: `Result<(), errno>`
-
-###### Variant Layout
-- size: 8
-- align: 4
-- tag_size: 4
-###### Variant cases
-- <a href="#advise.error.ok" name="advise.error.ok"></a> `ok`
-
-- <a href="#advise.error.err" name="advise.error.err"></a> `err`: [`errno`](#errno)
-
 
 ---
 
-#### <a href="#pread" name="pread"></a> `pread(fd: fd, iovs: iovec_array, offset: filesize) -> Result<size, errno>`
-Read from a file descriptor, without using and updating the file descriptor's offset.
-Note: This is similar to `preadv` in Linux (and other Unix-es).
+#### <a href="#read_at" name="read_at"></a> `read_at(array: array, iovs: iovec_array, offset: arraysize) -> Result<size, ()>`
+Read bytes from an array at a specified offset.
 
 ##### Params
-- <a href="#pread.fd" name="pread.fd"></a> `fd`: [`fd`](#fd)
+- <a href="#read_at.array" name="read_at.array"></a> `array`: [`array`](#array)
 
-- <a href="#pread.iovs" name="pread.iovs"></a> `iovs`: [`iovec_array`](#iovec_array)
+- <a href="#read_at.iovs" name="read_at.iovs"></a> `iovs`: [`iovec_array`](#iovec_array)
 List of scatter/gather vectors in which to store data.
 
-- <a href="#pread.offset" name="pread.offset"></a> `offset`: [`filesize`](#filesize)
-The offset within the file at which to read.
+- <a href="#read_at.offset" name="read_at.offset"></a> `offset`: [`arraysize`](#arraysize)
+The offset within the array at which to read.
 
 ##### Results
-- <a href="#pread.error" name="pread.error"></a> `error`: `Result<size, errno>`
+- <a href="#read_at.error" name="read_at.error"></a> `error`: `Result<size, ()>`
 The number of bytes read.
 
 ###### Variant Layout
@@ -1267,32 +1270,27 @@ The number of bytes read.
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#pread.error.ok" name="pread.error.ok"></a> `ok`: [`size`](#size)
+- <a href="#read_at.error.ok" name="read_at.error.ok"></a> `ok`: [`size`](#size)
 
-- <a href="#pread.error.err" name="pread.error.err"></a> `err`: [`errno`](#errno)
+- <a href="#read_at.error.err" name="read_at.error.err"></a> `err`
 
 
 ---
 
-#### <a href="#pwrite" name="pwrite"></a> `pwrite(fd: fd, iovs: ciovec_array, offset: filesize) -> Result<size, errno>`
-Write to a file descriptor, without using and updating the file descriptor's offset.
-Note: This is similar to `pwritev` in Linux (and other Unix-es).
-
-Like Linux (and other Unix-es), any calls of [`pwrite`](#pwrite) (and other
-functions to read or write) for a regular file by other threads in the
-WASI process should not be interleaved while [`pwrite`](#pwrite) is executed.
+#### <a href="#write_at" name="write_at"></a> `write_at(array: array, iovs: ciovec_array, offset: arraysize) -> Result<size, ()>`
+Write bytes to an array at a specified offset.
 
 ##### Params
-- <a href="#pwrite.fd" name="pwrite.fd"></a> `fd`: [`fd`](#fd)
+- <a href="#write_at.array" name="write_at.array"></a> `array`: [`array`](#array)
 
-- <a href="#pwrite.iovs" name="pwrite.iovs"></a> `iovs`: [`ciovec_array`](#ciovec_array)
+- <a href="#write_at.iovs" name="write_at.iovs"></a> `iovs`: [`ciovec_array`](#ciovec_array)
 List of scatter/gather vectors from which to retrieve data.
 
-- <a href="#pwrite.offset" name="pwrite.offset"></a> `offset`: [`filesize`](#filesize)
-The offset within the file at which to write.
+- <a href="#write_at.offset" name="write_at.offset"></a> `offset`: [`arraysize`](#arraysize)
+The offset within the array at which to write.
 
 ##### Results
-- <a href="#pwrite.error" name="pwrite.error"></a> `error`: `Result<size, errno>`
+- <a href="#write_at.error" name="write_at.error"></a> `error`: `Result<size, ()>`
 The number of bytes written.
 
 ###### Variant Layout
@@ -1300,9 +1298,121 @@ The number of bytes written.
 - align: 4
 - tag_size: 4
 ###### Variant cases
-- <a href="#pwrite.error.ok" name="pwrite.error.ok"></a> `ok`: [`size`](#size)
+- <a href="#write_at.error.ok" name="write_at.error.ok"></a> `ok`: [`size`](#size)
 
-- <a href="#pwrite.error.err" name="pwrite.error.err"></a> `err`: [`errno`](#errno)
+- <a href="#write_at.error.err" name="write_at.error.err"></a> `err`
+
+
+---
+
+#### <a href="#len" name="len"></a> `len(array: array) -> Result<size, ()>`
+Return the current length of the array.
+
+##### Params
+- <a href="#len.array" name="len.array"></a> `array`: [`array`](#array)
+
+##### Results
+- <a href="#len.result" name="len.result"></a> `result`: `Result<size, ()>`
+On success, the length of the array.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#len.result.ok" name="len.result.ok"></a> `ok`: [`size`](#size)
+
+- <a href="#len.result.err" name="len.result.err"></a> `err`
+
+
+---
+
+#### <a href="#set_len" name="set_len"></a> `set_len(array: array, len: size) -> Result<(), ()>`
+Set the current length of the array, either by truncating it at the end
+or by extending it at the end with zeros.
+
+##### Params
+- <a href="#set_len.array" name="set_len.array"></a> `array`: [`array`](#array)
+
+- <a href="#set_len.len" name="set_len.len"></a> `len`: [`size`](#size)
+The length to set.
+
+##### Results
+- <a href="#set_len.error" name="set_len.error"></a> `error`: `Result<(), ()>`
+Success or failure.
+
+###### Variant cases
+- <a href="#set_len.error.ok" name="set_len.error.ok"></a> `ok`
+
+- <a href="#set_len.error.err" name="set_len.error.err"></a> `err`
+
+
+---
+
+#### <a href="#media_type" name="media_type"></a> `media_type(array: array, buf: Pointer<u8>, buf_len: size)`
+Return the [Media Type] string for the input stream.
+
+The Media Type string is purely metadata, and makes no guarantee about
+the validity of the data.
+
+Returns "*/*" if the Media Type is unknown.
+
+[Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+
+##### Params
+- <a href="#media_type.array" name="media_type.array"></a> `array`: [`array`](#array)
+
+- <a href="#media_type.buf" name="media_type.buf"></a> `buf`: `Pointer<u8>`
+The buffer to which to write the contents of the symbolic link.
+The buffer must be at least 255 bytes long.
+
+TODO: Replace this with `(result $result string)` instead.
+
+- <a href="#media_type.buf_len" name="media_type.buf_len"></a> `buf_len`: [`size`](#size)
+
+##### Results
+
+---
+
+#### <a href="#copy" name="copy"></a> `copy(input: array, output: array, input_offset: arraysize, output_offset: arraysize, input_size: arraysize) -> Result<size, ()>`
+Copy bytes from an input array into an output array.
+
+##### Params
+- <a href="#copy.input" name="copy.input"></a> `input`: [`array`](#array)
+
+- <a href="#copy.output" name="copy.output"></a> `output`: [`array`](#array)
+
+- <a href="#copy.input_offset" name="copy.input_offset"></a> `input_offset`: [`arraysize`](#arraysize)
+The offset within the input array at which to read.
+
+- <a href="#copy.output_offset" name="copy.output_offset"></a> `output_offset`: [`arraysize`](#arraysize)
+The offset within the output array at which to write.
+
+- <a href="#copy.input_size" name="copy.input_size"></a> `input_size`: [`arraysize`](#arraysize)
+The number of bytes to copy.
+
+##### Results
+- <a href="#copy.error" name="copy.error"></a> `error`: `Result<size, ()>`
+The number of bytes written.
+
+###### Variant Layout
+- size: 8
+- align: 4
+- tag_size: 4
+###### Variant cases
+- <a href="#copy.error.ok" name="copy.error.ok"></a> `ok`: [`size`](#size)
+
+- <a href="#copy.error.err" name="copy.error.err"></a> `err`
+
+
+---
+
+#### <a href="#anonymous" name="anonymous"></a> `anonymous() -> array`
+Create a new anonymous array.
+
+##### Params
+##### Results
+- <a href="#anonymous.array" name="anonymous.array"></a> `array`: [`array`](#array)
 
 ## <a href="#wasi_ephemeral_io_streams" name="wasi_ephemeral_io_streams"></a> wasi_ephemeral_io_streams
 ### Imports
