@@ -328,9 +328,8 @@ impl Abi {
         results: &[InterfaceFuncParam],
     ) -> Result<(), String> {
         assert_eq!(*self, Abi::Preview1);
-        match results.len() {
-            0 => {}
-            1 => match &**results[0].tref.type_() {
+        for result in results {
+            match &**result.tref.type_() {
                 Type::Handle(_) | Type::Builtin(_) | Type::ConstPointer(_) | Type::Pointer(_) => {}
                 Type::Variant(v) => {
                     let (ok, err) = match v.as_expected() {
@@ -370,8 +369,7 @@ impl Abi {
                 }
                 Type::Record(r) if r.bitflags_repr().is_some() => {}
                 Type::Record(_) | Type::List(_) => return Err("invalid return type".to_string()),
-            },
-            _ => return Err("more than one result".to_string()),
+            }
         }
         Ok(())
     }

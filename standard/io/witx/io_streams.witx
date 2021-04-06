@@ -1,32 +1,262 @@
 ;; WASI I/O Streams.
+;;
+;; I/O streams support reliable in-order delivery.
+;;
+;; Currently this interface only supports streams of bytes, and datagram
+;; sockets and out-of-band messages are not supported. In the future, with
+;; appropriate interface types support, it's expected that this interface
+;; will support streams of arbitrary type as well, which could be implemented
+;; on top of datagram sockets.
+;;
+;; Many parts of this file are expected to evolve, as witx evolves, as
+;; interface types evolves, and as the I/O Types concepts themselves evolve.
+;; For example, `iovec_array` will likely be replaced by something else. The
+;; linear-memory import will go away. typenames.witx will likely be obviated
+;; with better mechanisms for sharing types.
 
 (use "typenames.witx")
+
+;;; A handle providing reliable and in-order delivery of a stream of bytes
+;;; from an external source.
+(typename $input_byte_stream (handle))
+
+;;; A handle providing reliable and in-order delivery of a stream of bytes
+;;; to an external source.
+(typename $output_byte_stream (handle))
+
+;;; A handle representing the name of a stream. This is opaque, and does
+;;; not expose the actual string.
+(typename $pseudonym (handle))
+
+;;; The status of a stream after a read.
+(typename $read_status
+  (enum (@witx tag u8)
+    ;;; The stream is ready for further reads.
+    ;;;
+    ;;; This code also implies that the `$size` returned from a read is equal
+    ;;; to the requested size.
+    $ready
+
+    ;;; Push - The stream is ready for further reads, however the source has
+    ;;; performed a flush. Consumers are encouraged to process the available
+    ;;; data before attempting further reads.
+    ;;;
+    ;;; This may also indicate that a failure has been detected after some
+    ;;; amount of data has been consumed. The data is returned successfully
+    ;;; with a `$push`, and the next `read` or `skip` call will report the
+    ;;; failure.
+    $push
+
+    ;;; The end of stream has been reached. No further data will be available
+    ;;; and subsequent attempts to read will fail.
+    $end
+  )
+)
 
 (module $wasi_ephemeral_io_streams
   ;;; Linear memory to be accessed by WASI functions that need it.
   (import "memory" (memory))
 
-  ;;; Read from a file descriptor.
-  ;;; Note: This is similar to `readv` in POSIX.
+  ;;; Read bytes from an input byte stream source.
+  ;;;
+  ;;; On success, `$size` indicates the number of bytes read, and
+  ;;; `$read_status` indicates the state of the stream.
+  ;;;
+  ;;; When `$read_status` is `$ready`, `$size` is equal to the total buffer size
+  ;;; of `$iovs`.
+  ;;;
+  ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
+  ;;; and `skip` on the stream will fail.
   (@interface func (export "read")
-    (param $fd $fd)
+    ;;; The input to read from.
+    (param $source $input_byte_stream)
     ;;; List of scatter/gather vectors to which to store data.
     (param $iovs $iovec_array)
-    ;;; The number of bytes read.
-    (result $error (expected $size (error $errno)))
+    ;;; On success, returns the number of bytes read plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
   )
 
-  ;;; Write to a file descriptor.
-  ;;; Note: This is similar to `writev` in POSIX.
+  ;;; Consume bytes from an input byte stream source, discarding the data.
   ;;;
-  ;;; Like POSIX, any calls of `write` (and other functions to read or write)
-  ;;; for a regular file by other threads in the WASI process should not be
-  ;;; interleaved while `write` is executed.
+  ;;; On success, `$size` indicates the number of bytes read, and
+  ;;; `$read_status` indicates the state of the stream.
+  ;;;
+  ;;; When `$read_status` is `$ready`, `$size` is equal to the total buffer size
+  ;;; of `$iovs`.
+  ;;;
+  ;;; When `$read_status` is `$end`, or on failure, subsequent calls to `read`
+  ;;; and `skip` on the stream will fail.
+  (@interface func (export "skip")
+    ;;; The input to skip in.
+    (param $source $input_byte_stream)
+    ;;; The number of bytes to skip over.
+    (param $len $size)
+    ;;; On success, returns the number of bytes read plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
+  )
+
+  ;;; Return the [Media Type] string for the input stream.
+  ;;;
+  ;;; The Media Type string is purely metadata, and makes no guarantee about
+  ;;; the validity of the data.
+  ;;;
+  ;;; Returns "*/*" if the Media Type is unknown.
+  ;;;
+  ;;; [Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+  (@interface func (export "input_media_type")
+    (param $source $input_byte_stream)
+
+    ;;; The buffer to which to write the contents of the symbolic link.
+    ;;; The buffer must be at least 255 bytes long.
+    ;;;
+    ;;; TODO: Replace this with `(result $result string)` instead.
+    (param $buf (@witx pointer (@witx char8)))
+    (param $buf_len $size)
+  )
+
+  ;;; Return the name for the input byte stream `$named`, as an abstract
+  ;;; handle, which can be written to the `$where` output byte stream.
+  ;;;
+  ;;; This allows the name of the input source to be passed into APIs
+  ;;; which display the name.
+  (@interface func (export "input_pseudonym")
+    ;;; The input byte stream to request a pseudonym for.
+    (param $named $input_byte_stream)
+    ;;; The output byte stream that the pseudonym may be written to.
+    (param $where $output_byte_stream)
+    ;;; The pseudonym.
+    (result $name $pseudonym)
+  )
+
+  ;;; Write to an output stream.
+  ;;;
+  ;;; On failure, subsequent calls to `write`, `write_zeros`, or
+  ;;; `write_pseudonym` on the stream will fail.
   (@interface func (export "write")
-    (param $fd $fd)
+    ;;; The output to write to.
+    (param $sink $output_byte_stream)
     ;;; List of scatter/gather vectors from which to retrieve data.
     (param $iovs $ciovec_array)
-    ;;; The number of bytes written.
-    (result $error (expected $size (error $errno)))
+    ;;; Indicate success or failure.
+    (result $result (expected (error)))
+  )
+
+  ;;; Write zeros to an output stream.
+  ;;;
+  ;;; On failure, subsequent calls to `write`, `write_zeros`, or
+  ;;; `write_pseudonym` on the stream will fail.
+  (@interface func (export "write_zeros")
+    ;;; The output to write to.
+    (param $sink $output_byte_stream)
+    ;;; The number of zero bytes to write.
+    (param $len $size)
+    ;;; Indicate success or failure.
+    (result $result (expected (error)))
+  )
+
+  ;;; Flush any pending output buffers and report any pending errors.
+  (@interface func (export "flush")
+    ;;; The output to write to.
+    (param $sink $output_byte_stream)
+    ;;; Success or error.
+    (result $result (expected (error)))
+  )
+
+  ;;; Return the [Media Type] string for the output stream.
+  ;;;
+  ;;; The Media Type string is purely metadata, and makes no guarantee about
+  ;;; the validity of the data.
+  ;;;
+  ;;; Returns "*/*" if the Media Type is unknown.
+  ;;;
+  ;;; [Media Type]: https://www.iana.org/assignments/media-types/media-types.xhtml
+  (@interface func (export "output_media_type")
+    (param $source $output_byte_stream)
+
+    ;;; The buffer to which to write the contents of the symbolic link.
+    ;;; The buffer must be at least 255 bytes long.
+    ;;;
+    ;;; TODO: Replace this with `(result $result string)` instead.
+    (param $buf (@witx pointer (@witx char8)))
+    (param $buf_len $size)
+  )
+
+  ;;; Return the name for the output byte stream `$named`, as an abstract
+  ;;; handle, which can be written to the `$where` output byte stream.
+  ;;;
+  ;;; This allows the name of the output sink to be passed into APIs
+  ;;; which display the name.
+  ;;;
+  ;;; TODO: This needs to say something about how the name is displayed.
+  ;;; Can it include whitespace? Non-printing characters? Quotes?
+  ;;; Backslashes? What's the encoding? And more.
+  (@interface func (export "output_pseudonym")
+    ;;; The output byte stream to request a pseudonym for.
+    (param $source $output_byte_stream)
+    ;;; The output byte stream that the pseudonym may be written to.
+    (param $where $output_byte_stream)
+    ;;; The pseudonym.
+    (result $name $pseudonym)
+  )
+
+  ;;; Write a pseudonym's name to the output stream.
+  ;;;
+  ;;; This function traps if the pseudonym is not one obtained from calling
+  ;;; `input_pseudonym` or `output_pseudonym` with a `$where` parameter of
+  ;;; `$source`.
+  ;;;
+  ;;; This allows the name of the output sink to be passed into APIs
+  ;;; which display the name in contexts where the name is already
+  ;;; exposed.
+  (@interface func (export "write_pseudonym")
+    ;;; The output to write to.
+    (param $source $output_byte_stream)
+    ;;; The pseudonym representing the name to write.
+    (param $name $pseudonym)
+    ;;; Indicate success or failure.
+    (result $result (expected (error)))
+  )
+
+  ;;; Forward all the subsequent data from an input stream to an output stream.
+  ;;;
+  ;;; If a failure occurs on the output stream, the remaining data from the
+  ;;; input stream is consumed and discarded.
+  (@interface func (export "forward")
+    ;;; The input to read from.
+    (param $source $input_byte_stream)
+    ;;; The output to write to.
+    (param $sink $output_byte_stream)
+    ;;; On success, return the number of bytes forwarded.
+    (result $result (expected $size (error)))
+  )
+
+  ;;; Forward up to `$len` bytes from an input stream to an output stream.
+  ;;;
+  ;;; If a failure occurs on the output stream, the remaining data from the
+  ;;; input stream is consumed and discarded.
+  (@interface func (export "forward_n")
+    ;;; The input to read from.
+    (param $source $input_byte_stream)
+    ;;; The output to write to.
+    (param $sink $output_byte_stream)
+    ;;; The maximum number of bytes to forward.
+    (param $len $size)
+    ;;; On success, returns the number of bytes forwarded plus the stream status.
+    (result $result (expected (tuple $size $read_status) (error)))
+  )
+
+  ;;; Return an input stream and an output stream where the input is
+  ;;; transmitted to the output.
+  (@interface func (export "pipe")
+    ;;; A stream for reading from the created pipe.
+    (result $source $input_byte_stream)
+    ;;; A stream for writing to the created pipe.
+    (result $sink $output_byte_stream)
+  )
+
+  ;;; Return an output stream which discards data sent to it.
+  (@interface func (export "null")
+    ;;; A stream for writing bytes to be discarded.
+    (result $sink $output_byte_stream)
   )
 )
