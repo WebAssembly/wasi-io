@@ -72,7 +72,7 @@
     (param $source $input_byte_stream)
     ;;; List of scatter/gather vectors to which to store data.
     (param $iovs $iovec_array)
-    ;;; On success, returns the number of bytes read plus the stream status.
+    ;;; On success, returns the number of bytes read and the stream status.
     (result $result (expected (tuple $size $read_status) (error)))
   )
 
@@ -90,9 +90,9 @@
     ;;; The input to skip in.
     (param $source $input_byte_stream)
     ;;; The number of bytes to skip over.
-    (param $len $size)
-    ;;; On success, returns the number of bytes read plus the stream status.
-    (result $result (expected (tuple $size $read_status) (error)))
+    (param $len u64)
+    ;;; On success, returns the number of bytes skipped and the stream status.
+    (result $result (expected (tuple u64 $read_status) (error)))
   )
 
   ;;; Return the [Media Type] string for the input stream.
@@ -149,7 +149,7 @@
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; The number of zero bytes to write.
-    (param $len $size)
+    (param $len u64)
     ;;; Indicate success or failure.
     (result $result (expected (error)))
   )
@@ -227,7 +227,7 @@
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; On success, return the number of bytes forwarded.
-    (result $result (expected $size (error)))
+    (result $result (expected u64 (error)))
   )
 
   ;;; Forward up to `$len` bytes from an input stream to an output stream.
@@ -240,9 +240,9 @@
     ;;; The output to write to.
     (param $sink $output_byte_stream)
     ;;; The maximum number of bytes to forward.
-    (param $len $size)
-    ;;; On success, returns the number of bytes forwarded plus the stream status.
-    (result $result (expected (tuple $size $read_status) (error)))
+    (param $len u64)
+    ;;; On success, returns the number of bytes forwarded and the stream status.
+    (result $result (expected (tuple u64 $read_status) (error)))
   )
 
   ;;; Return an input stream and an output stream where the input is
