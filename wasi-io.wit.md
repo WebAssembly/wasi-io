@@ -103,7 +103,8 @@ resource output-stream {
 ```wit
     /// Read from one stream and write to another.
     ///
-    /// 
+    /// This function returns the number of bytes transferred; it may be less
+    /// than `len`.
     splice: func(
         /// The stream to read from.
         src: input-stream,
@@ -115,6 +116,10 @@ resource output-stream {
 ## `forward`
 ```wit=
     /// Forward the entire contents of an input stream to an output stream.
+    ///
+    /// This function repeatedly reads from the input stream and writes
+    /// the data to the output stream, until the end of the input stream
+    /// is reached, or an error is encountered.
     ///
     /// This function returns the number of bytes transferred.
     forward: func(
