@@ -64,15 +64,24 @@ mean "ready".
 
 Size: 4, Alignment: 4
 
-## <a href="#stream_error" name="stream_error"></a> `stream-error`: record
+## <a href="#stream_error" name="stream_error"></a> `stream-error`: enum
 
 An error type returned from a stream operation. Currently this
-doesn't provide any additional information.
+doesn't provide any additional information beyond whether the stream
+would block or not.
 
-Size: 0, Alignment: 1
+Size: 1, Alignment: 1
 
-### Record Fields
+### Enum Cases
 
+- <a href="stream_error.error" name="stream_error.error"></a> [`error`](#stream_error.error)
+  
+  
+- <a href="stream_error.would_block" name="stream_error.would_block"></a> [`would-block`](#stream_error.would_block)
+  
+  The underlying stream is in a non-blocking mode, and a requested access
+  to it would otherwise block.
+  
 ## <a href="#output_stream" name="output_stream"></a> `output-stream`: `u32`
 
 An output bytestream. In the future, this will be replaced by handle

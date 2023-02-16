@@ -45,11 +45,22 @@ mean &quot;ready&quot;.</p>
 <h2>Types</h2>
 <h2><a href="#pollable" name="pollable"></a> <a href="#pollable"><code>pollable</code></a>: <a href="#pollable"><a href="#pollable"><code>pollable</code></a></a></h2>
 <p>Size: 4, Alignment: 4</p>
-<h2><a href="#stream_error" name="stream_error"></a> <a href="#stream_error"><code>stream-error</code></a>: record</h2>
+<h2><a href="#stream_error" name="stream_error"></a> <a href="#stream_error"><code>stream-error</code></a>: enum</h2>
 <p>An error type returned from a stream operation. Currently this
-doesn't provide any additional information.</p>
-<p>Size: 0, Alignment: 1</p>
-<h3>Record Fields</h3>
+doesn't provide any additional information beyond whether the stream
+would block or not.</p>
+<p>Size: 1, Alignment: 1</p>
+<h3>Enum Cases</h3>
+<ul>
+<li>
+<p><a href="stream_error.error" name="stream_error.error"></a> <a href="#stream_error.error"><code>error</code></a></p>
+</li>
+<li>
+<p><a href="stream_error.would_block" name="stream_error.would_block"></a> <a href="#stream_error.would_block"><code>would-block</code></a></p>
+<p>The underlying stream is in a non-blocking mode, and a requested access
+to it would otherwise block.</p>
+</li>
+</ul>
 <h2><a href="#output_stream" name="output_stream"></a> <a href="#output_stream"><code>output-stream</code></a>: <code>u32</code></h2>
 <p>An output bytestream. In the future, this will be replaced by handle
 types.</p>

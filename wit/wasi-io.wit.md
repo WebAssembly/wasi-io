@@ -17,8 +17,16 @@ use pkg.wasi-poll.{pollable}
 ## `stream-error`
 ```wit
 /// An error type returned from a stream operation. Currently this
-/// doesn't provide any additional information.
-record stream-error {}
+/// doesn't provide any additional information beyond whether the stream
+/// would block or not.
+enum stream-error {
+    // An I/O error occurred.
+    error,
+
+    /// The underlying stream is in a non-blocking mode, and a requested access
+    /// to it would otherwise block.
+    would-block,
+}
 ```
 
 ## `input-stream`
