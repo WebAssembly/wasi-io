@@ -8,16 +8,6 @@ package wasi:io
 interface streams {
     use wasi:poll/poll.{pollable}
 
-    /// An error type returned from a stream operation.
-    ///
-    /// TODO: need to figure out the actual contents of this error. Used to be
-    /// an empty record but that's no longer allowed. The `dummy` field is
-    /// only here to have this be a valid in the component model by being
-    /// non-empty.
-    record stream-error {
-      dummy: u32,
-    }
-
     /// Streams provide a sequence of data and then end; once they end, they
     /// no longer provide any further data.
     ///
@@ -76,7 +66,7 @@ interface streams {
         this: input-stream,
         /// The maximum number of bytes to read
         len: u64
-    ) -> result<tuple<list<u8>, stream-status>, stream-error>
+    ) -> result<tuple<list<u8>, stream-status>>
 
     /// Read bytes from a stream, after blocking until at least one byte can
     /// be read. Except for blocking, identical to `read`.
@@ -84,7 +74,7 @@ interface streams {
         this: input-stream,
         /// The maximum number of bytes to read
         len: u64
-    ) -> result<tuple<list<u8>, stream-status>, stream-error>
+    ) -> result<tuple<list<u8>, stream-status>>
 
     /// Skip bytes from a stream.
     ///
@@ -102,7 +92,7 @@ interface streams {
         this: input-stream,
         /// The maximum number of bytes to skip.
         len: u64,
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Skip bytes from a stream, after blocking until at least one byte
     /// can be skipped. Except for blocking behavior, identical to `skip`.
@@ -110,7 +100,7 @@ interface streams {
         this: input-stream,
         /// The maximum number of bytes to skip.
         len: u64,
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Create a `pollable` which will resolve once either the specified stream
     /// has bytes available to read or the other end of the stream has been
@@ -163,7 +153,7 @@ interface streams {
         this: output-stream,
         /// Data to write
         buf: list<u8>
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Blocking write of bytes to a stream.
     ///
@@ -173,7 +163,7 @@ interface streams {
         this: output-stream,
         /// Data to write
         buf: list<u8>
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Write multiple zero-bytes to a stream.
     ///
@@ -184,7 +174,7 @@ interface streams {
         this: output-stream,
         /// The number of zero-bytes to write
         len: u64
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Write multiple zero bytes to a stream, with blocking.
     ///
@@ -195,7 +185,7 @@ interface streams {
         this: output-stream,
         /// The number of zero bytes to write
         len: u64
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Read from one stream and write to another.
     ///
@@ -210,7 +200,7 @@ interface streams {
         src: input-stream,
         /// The number of bytes to splice
         len: u64,
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Read from one stream and write to another, with blocking.
     ///
@@ -222,7 +212,7 @@ interface streams {
         src: input-stream,
         /// The number of bytes to splice
         len: u64,
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Forward the entire contents of an input stream to an output stream.
     ///
@@ -240,7 +230,7 @@ interface streams {
         this: output-stream,
         /// The stream to read from
         src: input-stream
-    ) -> result<tuple<u64, stream-status>, stream-error>
+    ) -> result<tuple<u64, stream-status>>
 
     /// Create a `pollable` which will resolve once either the specified stream
     /// is ready to accept bytes or the `stream-state` has become closed.

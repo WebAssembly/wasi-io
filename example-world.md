@@ -84,16 +84,6 @@ When writing, this indicates that the stream will no longer be read.
 Further writes are still permitted.
 </li>
 </ul>
-<h4><a name="stream_error"><code>record stream-error</code></a></h4>
-<p>An error type returned from a stream operation.</p>
-<p>TODO: need to figure out the actual contents of this error. Used to be
-an empty record but that's no longer allowed. The <code>dummy</code> field is
-only here to have this be a valid in the component model by being
-non-empty.</p>
-<h5>Record Fields</h5>
-<ul>
-<li><a name="stream_error.dummy"><code>dummy</code></a>: <code>u32</code></li>
-</ul>
 <h4><a name="output_stream"><code>type output-stream</code></a></h4>
 <p><code>u32</code></p>
 <p>An output bytestream. In the future, this will be replaced by handle
@@ -141,10 +131,6 @@ the current <a href="#stream_status"><code>stream-status</code></a>.</p>
 is not possible to allocate in wasm32, or not desirable to allocate as
 as a return value by the callee. The callee may return a list of bytes
 less than <code>len</code> in size while more bytes are available for reading.</p>
-<p>Returning an empty list and <code>stream-status:open</code> indicates that no more
-bytes were available from the stream at that time. In that case the
-<a href="#subscribe_to_input_stream"><code>subscribe-to-input-stream</code></a> pollable will indicate when additional
-bytes are available for reading.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="read.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
@@ -152,12 +138,11 @@ bytes are available for reading.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="read.0"></a> result&lt;(list&lt;<code>u8</code>&gt;, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="read.0"></a> result&lt;(list&lt;<code>u8</code>&gt;, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="blocking_read"><code>blocking-read: func</code></a></h4>
-<p>Blocking read bytes from a stream.</p>
-<p>This is similar to <a href="#read"><code>read</code></a>, except that it blocks until at least one
-byte can be read.</p>
+<p>Read bytes from a stream, after blocking until at least one byte can
+be read. Except for blocking, identical to <a href="#read"><code>read</code></a>.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="blocking_read.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
@@ -165,7 +150,7 @@ byte can be read.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_read.0"></a> result&lt;(list&lt;<code>u8</code>&gt;, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_read.0"></a> result&lt;(list&lt;<code>u8</code>&gt;, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="skip"><code>skip: func</code></a></h4>
 <p>Skip bytes from a stream.</p>
@@ -184,12 +169,11 @@ value will be at most <code>len</code>; it may be less.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="skip.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="skip.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="blocking_skip"><code>blocking-skip: func</code></a></h4>
-<p>Blocking skip bytes from a stream.</p>
-<p>This is similar to <a href="#skip"><code>skip</code></a>, except that it blocks until at least one
-byte can be consumed.</p>
+<p>Skip bytes from a stream, after blocking until at least one byte
+can be skipped. Except for blocking behavior, identical to <a href="#skip"><code>skip</code></a>.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="blocking_skip.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
@@ -197,7 +181,7 @@ byte can be consumed.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_skip.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_skip.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="subscribe_to_input_stream"><code>subscribe-to-input-stream: func</code></a></h4>
 <p>Create a <a href="#pollable"><code>pollable</code></a> which will resolve once either the specified stream
@@ -245,7 +229,7 @@ may be promptly written.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="blocking_write"><code>blocking-write: func</code></a></h4>
 <p>Blocking write of bytes to a stream.</p>
@@ -258,7 +242,7 @@ byte can be written.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="write_zeroes"><code>write-zeroes: func</code></a></h4>
 <p>Write multiple zero-bytes to a stream.</p>
@@ -272,7 +256,7 @@ that were written; it may be less than <code>len</code>. Equivelant to a call to
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="blocking_write_zeroes"><code>blocking-write-zeroes: func</code></a></h4>
 <p>Write multiple zero bytes to a stream, with blocking.</p>
@@ -286,7 +270,7 @@ a list of zeroes of the given length.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="splice"><code>splice: func</code></a></h4>
 <p>Read from one stream and write to another.</p>
@@ -302,7 +286,7 @@ read from the input stream has been written to the output stream.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="splice.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="splice.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="blocking_splice"><code>blocking-splice: func</code></a></h4>
 <p>Read from one stream and write to another, with blocking.</p>
@@ -316,7 +300,7 @@ one byte can be read.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_splice.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_splice.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="forward"><code>forward: func</code></a></h4>
 <p>Forward the entire contents of an input stream to an output stream.</p>
@@ -335,7 +319,7 @@ the output stream.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="forward.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="forward.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>)&gt;</li>
 </ul>
 <h4><a name="subscribe_to_output_stream"><code>subscribe-to-output-stream: func</code></a></h4>
 <p>Create a <a href="#pollable"><code>pollable</code></a> which will resolve once either the specified stream
