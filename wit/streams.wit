@@ -72,21 +72,14 @@ interface streams {
     /// is not possible to allocate in wasm32, or not desirable to allocate as
     /// as a return value by the callee. The callee may return a list of bytes
     /// less than `len` in size while more bytes are available for reading.
-    ///
-    /// Returning an empty list and `stream-status:open` indicates that no more
-    /// bytes were available from the stream at that time. In that case the
-    /// `subscribe-to-input-stream` pollable will indicate when additional
-    /// bytes are available for reading.
     read: func(
         this: input-stream,
         /// The maximum number of bytes to read
         len: u64
     ) -> result<tuple<list<u8>, stream-status>, stream-error>
 
-    /// Blocking read bytes from a stream.
-    ///
-    /// This is similar to `read`, except that it blocks until at least one
-    /// byte can be read.
+    /// Read bytes from a stream, after blocking until at least one byte can
+    /// be read. Except for blocking, identical to `read`.
     blocking-read: func(
         this: input-stream,
         /// The maximum number of bytes to read
@@ -111,10 +104,8 @@ interface streams {
         len: u64,
     ) -> result<tuple<u64, stream-status>, stream-error>
 
-    /// Blocking skip bytes from a stream.
-    ///
-    /// This is similar to `skip`, except that it blocks until at least one
-    /// byte can be consumed.
+    /// Skip bytes from a stream, after blocking until at least one byte
+    /// can be skipped. Except for blocking behavior, identical to `skip`.
     blocking-skip: func(
         this: input-stream,
         /// The maximum number of bytes to skip.
