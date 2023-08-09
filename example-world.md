@@ -159,9 +159,9 @@ bytes into the instance.</p>
 <p>Once a stream has reached the end, subsequent calls to read or
 <a href="#skip"><code>skip</code></a> will always report end-of-stream rather than producing more
 data.</p>
-<p>This function returns the number of bytes skipped, along with a bool
-indicating whether the end of the stream was reached. The returned
-value will be at most <code>len</code>; it may be less.</p>
+<p>This function returns the number of bytes skipped, along with a
+<a href="#stream_status"><code>stream-status</code></a> indicating whether the end of the stream was
+reached. The returned value will be at most <code>len</code>; it may be less.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="skip.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>

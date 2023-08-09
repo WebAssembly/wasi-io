@@ -85,9 +85,9 @@ interface streams {
     /// `skip` will always report end-of-stream rather than producing more
     /// data.
     ///
-    /// This function returns the number of bytes skipped, along with a bool
-    /// indicating whether the end of the stream was reached. The returned
-    /// value will be at most `len`; it may be less.
+    /// This function returns the number of bytes skipped, along with a
+    /// `stream-status` indicating whether the end of the stream was
+    /// reached. The returned value will be at most `len`; it may be less.
     skip: func(
         this: input-stream,
         /// The maximum number of bytes to skip.
