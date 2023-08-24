@@ -85,13 +85,22 @@ socket ends when the socket is closed.</p>
 </li>
 <li>
 <p><a name="stream_status.ended"><code>ended</code></a></p>
-<p>The stream has ended and will not produce any further data.
+<p>When reading, this indicates that the stream will not produce
+further data.
+When writing, this indicates that the stream will no longer be read.
+Further writes are still permitted.
 </li>
 </ul>
 <h4><a name="stream_error"><code>record stream-error</code></a></h4>
-<p>An error type returned from a stream operation. Currently this
-doesn't provide any additional information.</p>
+<p>An error type returned from a stream operation.</p>
+<p>TODO: need to figure out the actual contents of this error. Used to be
+an empty record but that's no longer allowed. The <code>dummy</code> field is
+only here to have this be a valid in the component model by being
+non-empty.</p>
 <h5>Record Fields</h5>
+<ul>
+<li><a name="stream_error.dummy"><code>dummy</code></a>: <code>u32</code></li>
+</ul>
 <h4><a name="output_stream"><code>type output-stream</code></a></h4>
 <p><code>u32</code></p>
 <p>An output bytestream. In the future, this will be replaced by handle
@@ -103,7 +112,7 @@ underlying platforms. Except where specified otherwise, I/O operations also
 always return promptly, after the number of bytes that can be written
 promptly, which could even be zero. To wait for the stream to be ready to
 accept data, the <a href="#subscribe_to_output_stream"><code>subscribe-to-output-stream</code></a> function to obtain a
-<a href="#pollable"><code>pollable</code></a> which can be polled for using <code>wasi_poll</code>.</p>
+<a href="#pollable"><code>pollable</code></a> which can be polled for using <code>wasi:poll</code>.</p>
 <p>And at present, it is a <code>u32</code> instead of being an actual handle, until
 the wit-bindgen implementation of handles and resources is ready.</p>
 <p>This <a href="https://github.com/WebAssembly/WASI/blob/main/docs/WitInWasi.md#Resources">represents a resource</a>.</p>
@@ -125,11 +134,11 @@ the wit-bindgen implementation of handles and resources is ready.</p>
 <hr />
 <h3>Functions</h3>
 <h4><a name="read"><code>read: func</code></a></h4>
-<p>Read bytes from a stream.</p>
+<p>Perform a non-blocking read from the stream.</p>
 <p>This function returns a list of bytes containing the data that was
-read, along with a <a href="#stream_status"><code>stream-status</code></a> which indicates whether the end of
-the stream was reached. The returned list will contain up to <code>len</code>
-bytes; it may return fewer than requested, but not more.</p>
+read, along with a <a href="#stream_status"><code>stream-status</code></a> which, indicates whether further
+reads are expected to produce data. The returned list will contain up to
+<code>len</code> bytes; it may return fewer than requested, but not more.</p>
 <p>Once a stream has reached the end, subsequent calls to read or
 <a href="#skip"><code>skip</code></a> will always report end-of-stream rather than producing more
 data.</p>
@@ -139,6 +148,11 @@ return an empty list.</p>
 <p>The len here is a <code>u64</code>, but some callees may not be able to allocate
 a buffer as large as that would imply.
 FIXME: describe what happens if allocation fails.</p>
+<p>When the returned <a href="#stream_status"><code>stream-status</code></a> is <code>open</code>, the length of the returned
+value may be less than <code>len</code>. When an empty list is returned, this
+indicates that no more bytes were available from the stream at that
+time. In that case the subscribe-to-input-stream pollable will indicate
+when additional bytes are available for reading.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="read.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
@@ -168,9 +182,9 @@ bytes into the instance.</p>
 <p>Once a stream has reached the end, subsequent calls to read or
 <a href="#skip"><code>skip</code></a> will always report end-of-stream rather than producing more
 data.</p>
-<p>This function returns the number of bytes skipped, along with a
-<a href="#stream_status"><code>stream-status</code></a> indicating whether the end of the stream was
-reached. The returned value will be at most <code>len</code>; it may be less.</p>
+<p>This function returns the number of bytes skipped, along with a bool
+indicating whether the end of the stream was reached. The returned
+value will be at most <code>len</code>; it may be less.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="skip.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
@@ -213,9 +227,17 @@ be used.</p>
 <li><a name="drop_input_stream.this"><code>this</code></a>: <a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a></li>
 </ul>
 <h4><a name="write"><code>write: func</code></a></h4>
-<p>Write bytes to a stream.</p>
-<p>This function returns a <code>u64</code> indicating the number of bytes from
-<code>buf</code> that were written; it may be less than the full list.</p>
+<p>Perform a non-blocking write of bytes to a stream.</p>
+<p>This function returns a <code>u64</code> and a <a href="#stream_status"><code>stream-status</code></a>. The <code>u64</code> indicates
+the number of bytes from <code>buf</code> that were written, which may be less than
+the length of <code>buf</code>. The <a href="#stream_status"><code>stream-status</code></a> indicates if further writes to
+the stream are expected to be read.</p>
+<p>When the returned <a href="#stream_status"><code>stream-status</code></a> is <code>open</code>, the <code>u64</code> return value may
+be less than the length of <code>buf</code>. This indicates that no more bytes may
+be written to the stream promptly. In that case the
+subscribe-to-output-stream pollable will indicate when additional bytes
+may be promptly written.</p>
+<p>TODO: document what happens when an empty list is written</p>
 <h5>Params</h5>
 <ul>
 <li><a name="write.this"><code>this</code></a>: <a href="#output_stream"><a href="#output_stream"><code>output-stream</code></a></a></li>
@@ -223,7 +245,7 @@ be used.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="write.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="blocking_write"><code>blocking-write: func</code></a></h4>
 <p>Write bytes to a stream, with blocking.</p>
@@ -236,7 +258,7 @@ byte can be written.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_write.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_write.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="write_zeroes"><code>write-zeroes: func</code></a></h4>
 <p>Write multiple zero bytes to a stream.</p>
@@ -249,7 +271,7 @@ that were written; it may be less than <code>len</code>.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="write_zeroes.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="blocking_write_zeroes"><code>blocking-write-zeroes: func</code></a></h4>
 <p>Write multiple zero bytes to a stream, with blocking.</p>
@@ -262,7 +284,7 @@ one byte can be written.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="blocking_write_zeroes.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="blocking_write_zeroes.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="splice"><code>splice: func</code></a></h4>
 <p>Read from one stream and write to another.</p>
@@ -302,7 +324,8 @@ is reached, or an error is encountered.</p>
 <p>Unlike other I/O functions, this function blocks until the end
 of the input stream is seen and all the data has been written to
 the output stream.</p>
-<p>This function returns the number of bytes transferred.</p>
+<p>This function returns the number of bytes transferred, and the status of
+the output stream.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="forward.this"><code>this</code></a>: <a href="#output_stream"><a href="#output_stream"><code>output-stream</code></a></a></li>
@@ -310,7 +333,7 @@ the output stream.</p>
 </ul>
 <h5>Return values</h5>
 <ul>
-<li><a name="forward.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+<li><a name="forward.0"></a> result&lt;(<code>u64</code>, <a href="#stream_status"><a href="#stream_status"><code>stream-status</code></a></a>), <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="subscribe_to_output_stream"><code>subscribe-to-output-stream: func</code></a></h4>
 <p>Create a <a href="#pollable"><code>pollable</code></a> which will resolve once either the specified stream
