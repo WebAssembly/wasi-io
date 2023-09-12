@@ -164,7 +164,7 @@ interface streams {
         /// }
         /// this.flush();
         /// // Wait for completion of `flush`
-        /// poll-oneoff(pollable);
+        /// poll-one(pollable);
         /// // Check for any errors that arose during `flush`
         /// let _ = this.check-write();         // eliding error handling
         /// ```
@@ -223,7 +223,7 @@ interface streams {
         /// let pollable = this.subscribe();
         /// while num_zeroes != 0 {
         ///     // Wait for the stream to become writable
-        ///     poll-oneoff(pollable);
+        ///     poll-one(pollable);
         ///     let Ok(n) = this.check-write(); // eliding error handling
         ///     let len = min(n, num_zeroes);
         ///     this.write-zeroes(len);         // eliding error handling
@@ -231,7 +231,7 @@ interface streams {
         /// }
         /// this.flush();
         /// // Wait for completion of `flush`
-        /// poll-oneoff(pollable);
+        /// poll-one(pollable);
         /// // Check for any errors that arose during `flush`
         /// let _ = this.check-write();         // eliding error handling
         /// ```
