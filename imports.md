@@ -13,7 +13,7 @@ at once.</p>
 <hr />
 <h3>Types</h3>
 <h4><a name="pollable"><code>resource pollable</code></a></h4>
-<hr />
+<h2>A &quot;pollable&quot; handle.</h2>
 <h3>Functions</h3>
 <h4><a name="poll_list"><code>poll-list: func</code></a></h4>
 <p>Poll for completion on a set of pollables.</p>
@@ -56,6 +56,14 @@ when it does, they are expected to subsume this API.</p>
 <p><a href="#pollable"><a href="#pollable"><code>pollable</code></a></a></p>
 <p>
 #### <a name="error">`resource error`</a>
+<p>Contextual error information about the last failure that happened on
+a read, write, or flush from an <a href="#input_stream"><code>input-stream</code></a> or <a href="#output_stream"><code>output-stream</code></a>.</p>
+<p>This type is returned through the <a href="#stream_error"><code>stream-error</code></a> type whenever an
+operation on a stream directly fails or an error is discovered
+after-the-fact, for example when a write's failure shows up through a
+later <code>flush</code> or <code>check-write</code>.</p>
+<p>Interfaces such as <code>wasi:filesystem/types</code> provide functionality to
+further &quot;downcast&quot; this error into interface-specific error information.</p>
 <h4><a name="stream_error"><code>variant stream-error</code></a></h4>
 <p>An error for input-stream and output-stream operations.</p>
 <h5>Variant Cases</h5>
@@ -73,8 +81,21 @@ future operations.
 </li>
 </ul>
 <h4><a name="input_stream"><code>resource input-stream</code></a></h4>
+<p>An input bytestream.</p>
+<p><a href="#input_stream"><code>input-stream</code></a>s are <em>non-blocking</em> to the extent practical on underlying
+platforms. I/O operations always return promptly; if fewer bytes are
+promptly available than requested, they return the number of bytes promptly
+available, which could even be zero. To wait for data to be available,
+use the <code>subscribe</code> function to obtain a <a href="#pollable"><code>pollable</code></a> which can be polled
+for using <a href="#wasi:io_poll"><code>wasi:io/poll</code></a>.</p>
 <h4><a name="output_stream"><code>resource output-stream</code></a></h4>
-<hr />
+<p>An output bytestream.</p>
+<h2><a href="#output_stream"><code>output-stream</code></a>s are <em>non-blocking</em> to the extent practical on
+underlying platforms. Except where specified otherwise, I/O operations also
+always return promptly, after the number of bytes that can be written
+promptly, which could even be zero. To wait for the stream to be ready to
+accept data, the <code>subscribe</code> function to obtain a <a href="#pollable"><code>pollable</code></a> which can be
+polled for using <a href="#wasi:io_poll"><code>wasi:io/poll</code></a>.</h2>
 <h3>Functions</h3>
 <h4><a name="method_error.to_debug_string"><code>[method]error.to-debug-string: func</code></a></h4>
 <p>Returns a string that's suitable to assist humans in debugging this
@@ -92,19 +113,18 @@ platform-compatibility hazard.</p>
 </ul>
 <h4><a name="method_input_stream.read"><code>[method]input-stream.read: func</code></a></h4>
 <p>Perform a non-blocking read from the stream.</p>
-<p>This function returns a list of bytes containing the data that was
-read, along with a <code>stream-status</code> which, indicates whether further
-reads are expected to produce data. The returned list will contain up to
-<code>len</code> bytes; it may return fewer than requested, but not more. An
-empty list and <code>stream-status:open</code> indicates no more data is
-available at this time, and that the pollable given by <code>subscribe</code>
-will be ready when more data is available.</p>
-<p>Once a stream has reached the end, subsequent calls to <code>read</code> or
-<code>skip</code> will always report <code>stream-status:ended</code> rather than producing more
-data.</p>
-<p>When the caller gives a <code>len</code> of 0, it represents a request to read 0
-bytes. This read should  always succeed and return an empty list and
-the current <code>stream-status</code>.</p>
+<p>This function returns a list of bytes containing the read data,
+when successful. The returned list will contain up to <code>len</code> bytes;
+it may return fewer than requested, but not more. The list is
+empty when no bytes are available for reading at this time. The
+pollable given by <code>subscribe</code> will be ready when more bytes are
+available.</p>
+<p>This function fails with a <a href="#stream_error"><code>stream-error</code></a> when the operation
+encounters an error, giving <code>last-operation-failed</code>, or when the
+stream is closed, giving <code>closed</code>.</p>
+<p>When the caller gives a <code>len</code> of 0, it represents a request to
+read 0 bytes. If the stream is still open, this call should
+succeed and return an empty list, or otherwise fail with <code>closed</code>.</p>
 <p>The <code>len</code> parameter is a <code>u64</code>, which could represent a list of u8 which
 is not possible to allocate in wasm32, or not desirable to allocate as
 as a return value by the callee. The callee may return a list of bytes
@@ -120,7 +140,7 @@ less than <code>len</code> in size while more bytes are available for reading.</
 </ul>
 <h4><a name="method_input_stream.blocking_read"><code>[method]input-stream.blocking-read: func</code></a></h4>
 <p>Read bytes from a stream, after blocking until at least one byte can
-be read. Except for blocking, identical to <code>read</code>.</p>
+be read. Except for blocking, behavior is identical to <code>read</code>.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="method_input_stream.blocking_read.self"><code>self</code></a>: borrow&lt;<a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a>&gt;</li>
@@ -131,15 +151,9 @@ be read. Except for blocking, identical to <code>read</code>.</p>
 <li><a name="method_input_stream.blocking_read.0"></a> result&lt;list&lt;<code>u8</code>&gt;, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
 </ul>
 <h4><a name="method_input_stream.skip"><code>[method]input-stream.skip: func</code></a></h4>
-<p>Skip bytes from a stream.</p>
-<p>This is similar to the <code>read</code> function, but avoids copying the
-bytes into the instance.</p>
-<p>Once a stream has reached the end, subsequent calls to read or
-<code>skip</code> will always report end-of-stream rather than producing more
-data.</p>
-<p>This function returns the number of bytes skipped, along with a
-<code>stream-status</code> indicating whether the end of the stream was
-reached. The returned value will be at most <code>len</code>; it may be less.</p>
+<p>Skip bytes from a stream. Returns number of bytes skipped.</p>
+<p>Behaves identical to <code>read</code>, except instead of returning a list
+of bytes, returns the number of bytes consumed from the stream.</p>
 <h5>Params</h5>
 <ul>
 <li><a name="method_input_stream.skip.self"><code>self</code></a>: borrow&lt;<a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a>&gt;</li>
