@@ -29,7 +29,7 @@ at once.</p>
 <h4><a name="method_pollable.block"><code>[method]pollable.block: func</code></a></h4>
 <p><code>block</code> returns immediately if the pollable is ready, and otherwise
 blocks until ready.</p>
-<p>This function is equivalent to calling <code>poll-list</code> on a list
+<p>This function is equivalent to calling <code>poll.poll</code> on a list
 containing only this pollable.</p>
 <h5>Params</h5>
 <ul>
