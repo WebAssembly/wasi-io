@@ -178,7 +178,7 @@ interface streams {
 
         /// Write zeroes to a stream.
         ///
-        /// this should be used precisely like `write` with the exact same
+        /// This should be used precisely like `write` with the exact same
         /// preconditions (must use check-write first), but instead of
         /// passing a list of bytes, you simply pass the number of zero-bytes
         /// that should be written.
