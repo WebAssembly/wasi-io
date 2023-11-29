@@ -14,9 +14,9 @@ WASI-io is currently in [Phase 2].
 
 ### Portability Criteria
 
-WASI io must have host implementations which can pass the testsuite on at least Windows, macOS, and Linux.
+WASI I/O must have host implementations which can pass the testsuite on at least Windows, macOS, and Linux.
 
-WASI io must have at least two complete independent implementations.
+WASI I/O must have at least two complete independent implementations.
 
 ## Table of Contents
 
