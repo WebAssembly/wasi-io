@@ -102,6 +102,10 @@ interface streams {
     /// promptly, which could even be zero. To wait for the stream to be ready to
     /// accept data, the `subscribe` function to obtain a `pollable` which can be
     /// polled for using `wasi:io/poll`.
+    ///
+    /// Dropping an `output-stream` while there's still an active write in
+    /// progress may trap. Before dropping the stream, be sure to either fully
+    /// flush or cancel your writes.
     resource output-stream {
         /// Check readiness for writing. This function never blocks.
         ///
@@ -258,5 +262,16 @@ interface streams {
             /// The number of bytes to splice
             len: u64,
         ) -> result<u64, stream-error>;
+
+        /// Initiate cancellation of any pending or in-progress writes.
+        /// This is an asynchronous operation. Use `subscribe` to wait for the
+        /// cancellation to finish. Dropping the stream while the cancellation
+        /// is in progress may trap.
+        ///
+        /// While the cancellation is in progress, all other operations on this
+        /// stream respond as though the stream is currently not available for
+        /// I/O. (e.g. `check-write` returns 0). After cancellation has completed,
+        /// all operations return as though the stream is closed.
+        cancel: func();
     }
 }

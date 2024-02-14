@@ -132,12 +132,15 @@ use the <code>subscribe</code> function to obtain a <a href="#pollable"><code>po
 for using <code>wasi:io/poll</code>.</p>
 <h4><a name="output_stream"><code>resource output-stream</code></a></h4>
 <p>An output bytestream.</p>
-<h2><a href="#output_stream"><code>output-stream</code></a>s are <em>non-blocking</em> to the extent practical on
+<p><a href="#output_stream"><code>output-stream</code></a>s are <em>non-blocking</em> to the extent practical on
 underlying platforms. Except where specified otherwise, I/O operations also
 always return promptly, after the number of bytes that can be written
 promptly, which could even be zero. To wait for the stream to be ready to
 accept data, the <code>subscribe</code> function to obtain a <a href="#pollable"><code>pollable</code></a> which can be
-polled for using <code>wasi:io/poll</code>.</h2>
+polled for using <code>wasi:io/poll</code>.</p>
+<h2>Dropping an <a href="#output_stream"><code>output-stream</code></a> while there's still an active write in
+progress may trap. Before dropping the stream, be sure to either fully
+flush or cancel your writes.</h2>
 <h3>Functions</h3>
 <h4><a name="method_input_stream.read"><code>[method]input-stream.read: func</code></a></h4>
 <p>Perform a non-blocking read from the stream.</p>
@@ -417,4 +420,17 @@ is ready for reading, before performing the <code>splice</code>.</p>
 <h5>Return values</h5>
 <ul>
 <li><a name="method_output_stream.blocking_splice.0"></a> result&lt;<code>u64</code>, <a href="#stream_error"><a href="#stream_error"><code>stream-error</code></a></a>&gt;</li>
+</ul>
+<h4><a name="method_output_stream.cancel"><code>[method]output-stream.cancel: func</code></a></h4>
+<p>Initiate cancellation of any pending or in-progress writes.
+This is an asynchronous operation. Use <code>subscribe</code> to wait for the
+cancellation to finish. Dropping the stream while the cancellation
+is in progress may trap.</p>
+<p>While the cancellation is in progress, all other operations on this
+stream respond as though the stream is currently not available for
+I/O. (e.g. <code>check-write</code> returns 0). After cancellation has completed,
+all operations return as though the stream is closed.</p>
+<h5>Params</h5>
+<ul>
+<li><a name="method_output_stream.cancel.self"><code>self</code></a>: borrow&lt;<a href="#output_stream"><a href="#output_stream"><code>output-stream</code></a></a>&gt;</li>
 </ul>
