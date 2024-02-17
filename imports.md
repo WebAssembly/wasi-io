@@ -216,11 +216,6 @@ can be skipped. Except for blocking behavior, identical to <code>skip</code>.</p
 a background task. The returned future resolves when either the input
 stream has been fully drained or when an error occurred while reading
 or writing.</p>
-<p>The <code>flush-on-block</code> parameter controls whether the output stream
-should be automatically flushed whenever the input stream reports
-that it has no data at that moment. When the future resolves it is
-possible for there to be data written to the output stream that
-hasn't been flushed yet because the last read didn't block.</p>
 <p>If you need to be sure that all data has been flushed at the end of
 the forward, call <code>flush</code> yourself afterwards or use
 <code>forward-and-drop</code> instead.</p>
@@ -235,9 +230,6 @@ let dst-pollable = dst.subscribe();
 loop { // Error &amp; cancellation checking omitted for brevity.
 let len = src.splice(dst);
 if len == 0 { // No data available at the moment
-if flush-on-block {
-  dst.flush();
-}
 src-pollable.block();
 dst-pollable.block();
 }
@@ -247,7 +239,6 @@ dst-pollable.block();
 <ul>
 <li><a name="method_input_stream.forward.self"><code>self</code></a>: borrow&lt;<a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a>&gt;</li>
 <li><a name="method_input_stream.forward.dst"><code>dst</code></a>: borrow&lt;<a href="#output_stream"><a href="#output_stream"><code>output-stream</code></a></a>&gt;</li>
-<li><a name="method_input_stream.forward.flush_on_block"><code>flush-on-block</code></a>: <code>bool</code></li>
 </ul>
 <h5>Return values</h5>
 <ul>
@@ -271,7 +262,7 @@ function.</p>
 <p>This method is equivalent to spawning a background task running the
 following pseudo-code:</p>
 <pre><code class="language-text">// Error &amp; cancellation checking omitted for brevity.
-src.forward(dst, flush-on-block).subscribe().block();
+src.forward(dst).subscribe().block();
 dst.blocking-flush();
 drop(src);
 drop(dst);
@@ -280,7 +271,6 @@ drop(dst);
 <ul>
 <li><a name="static_input_stream.forward_and_drop.src"><code>src</code></a>: own&lt;<a href="#input_stream"><a href="#input_stream"><code>input-stream</code></a></a>&gt;</li>
 <li><a name="static_input_stream.forward_and_drop.dst"><code>dst</code></a>: own&lt;<a href="#output_stream"><a href="#output_stream"><code>output-stream</code></a></a>&gt;</li>
-<li><a name="static_input_stream.forward_and_drop.flush_on_block"><code>flush-on-block</code></a>: <code>bool</code></li>
 </ul>
 <h5>Return values</h5>
 <ul>

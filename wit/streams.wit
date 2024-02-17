@@ -89,12 +89,6 @@ interface streams {
         /// stream has been fully drained or when an error occurred while reading
         /// or writing.
         ///
-        /// The `flush-on-block` parameter controls whether the output stream
-        /// should be automatically flushed whenever the input stream reports
-        /// that it has no data at that moment. When the future resolves it is
-        /// possible for there to be data written to the output stream that
-        /// hasn't been flushed yet because the last read didn't block.
-        ///
         /// If you need to be sure that all data has been flushed at the end of
         /// the forward, call `flush` yourself afterwards or use
         /// `forward-and-drop` instead.
@@ -112,15 +106,12 @@ interface streams {
         /// loop { // Error & cancellation checking omitted for brevity.
         ///   let len = src.splice(dst);
         ///   if len == 0 { // No data available at the moment
-        ///     if flush-on-block {
-        ///       dst.flush();
-        ///     }
         ///     src-pollable.block();
         ///     dst-pollable.block();
         ///   }
         /// }
         /// ```
-        forward: func(dst: borrow<output-stream>, flush-on-block: bool) -> future-forward-result;
+        forward: func(dst: borrow<output-stream>) -> future-forward-result;
 
         /// Functionally similar to `forward` except that this function also:
         /// - automatically performs a final flush, and
@@ -141,12 +132,12 @@ interface streams {
         /// following pseudo-code:
         /// ```text
         /// // Error & cancellation checking omitted for brevity.
-        /// src.forward(dst, flush-on-block).subscribe().block();
+        /// src.forward(dst).subscribe().block();
         /// dst.blocking-flush();
         /// drop(src);
         /// drop(dst);
         /// ```
-        forward-and-drop: static func(src: input-stream, dst: output-stream, flush-on-block: bool) -> future-forward-result;
+        forward-and-drop: static func(src: input-stream, dst: output-stream) -> future-forward-result;
 
         /// Create a `pollable` which will resolve once either the specified stream
         /// has bytes available to read or the other end of the stream has been
