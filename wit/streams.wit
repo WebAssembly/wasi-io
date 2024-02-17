@@ -84,6 +84,61 @@ interface streams {
             len: u64,
         ) -> result<u64, stream-error>;
 
+        /// Completely drain the input stream into the provided output stream on
+        /// a background task. The returned future resolves when either the input
+        /// stream has been fully drained or when an error occurred while reading
+        /// or writing.
+        ///
+        /// If you need to be sure that all data has been flushed at the end of
+        /// the forward, call `flush` yourself afterwards or use
+        /// `forward-and-drop` instead.
+        ///
+        /// Even though this function only borrows its parameters, it requires
+        /// exclusive access to them for as long as the forward is in progress.
+        /// Any attempt to access or drop the streams in the meantime will trap.
+        ///
+        /// This method is equivalent to spawning a background task running the
+        /// following pseudo-code:
+        /// ```text
+        /// let src-pollable = src.subscribe();
+        /// let dst-pollable = dst.subscribe();
+        /// 
+        /// loop { // Error & cancellation checking omitted for brevity.
+        ///   let len = src.splice(dst);
+        ///   if len == 0 { // No data available at the moment
+        ///     src-pollable.block();
+        ///     dst-pollable.block();
+        ///   }
+        /// }
+        /// ```
+        forward: func(dst: borrow<output-stream>) -> future-forward-result;
+
+        /// Functionally similar to `forward` except that this function also:
+        /// - automatically performs a final flush, and
+        /// - drops the stream when it's done.
+        ///
+        /// Control over the streams is handed over to the host. This may enable
+        /// implementations to perform additional optimizations not possible otherwise.
+        ///
+        /// The streams remain children and their respective parents (if any).
+        /// If those parents place any lifetimes restrictions on the streams,
+        /// those continue to apply. In practice this typically means that the
+        /// returned future should not outlive the stream's parents.
+        /// Implementations may trap if the the streams themselves still have
+        /// any active child resources (pollables) at the time of calling this
+        /// function.
+        ///
+        /// This method is equivalent to spawning a background task running the
+        /// following pseudo-code:
+        /// ```text
+        /// // Error & cancellation checking omitted for brevity.
+        /// src.forward(dst).subscribe().block();
+        /// dst.blocking-flush();
+        /// drop(src);
+        /// drop(dst);
+        /// ```
+        forward-and-drop: static func(src: input-stream, dst: output-stream) -> future-forward-result;
+
         /// Create a `pollable` which will resolve once either the specified stream
         /// has bytes available to read or the other end of the stream has been
         /// closed.
@@ -258,5 +313,38 @@ interface streams {
             /// The number of bytes to splice
             len: u64,
         ) -> result<u64, stream-error>;
+    }
+
+    /// Represents a future which will eventually return the forward result.
+    ///
+    /// Dropping this future while it's still pending may trap. Use `cancel` to
+    /// cancel the operation. A future is "pending" while `get` would return `none`.
+    resource future-forward-result {
+        /// Returns a pollable which becomes ready when either the operation has
+        /// succeeded, failed or has been canceled. When this pollable is ready,
+        /// the `get` method will return `some`.
+        subscribe: func() -> pollable;
+
+        /// Initiate cancellation of the task. This is an asynchronous operation.
+        /// Use `subscribe` to wait for the cancallation to finish.
+        ///
+        /// Dropping the future while the cancellation is in progress may trap.
+        cancel: func();
+
+        /// Returns the result of the forward operation once the future is ready.
+        ///
+        /// The outer `option` represents future readiness. Users can wait on this
+        /// `option` to become `some` using the `subscribe` method.
+        ///
+        /// The outer `result` will be `error` if the future was canceled or the
+        /// inner result has already been retrieved from the future in a previous
+        /// call.
+        ///
+        /// The inner `result` represents the result of the actual forward
+        /// operation. This will be:
+        /// - `ok` when the source stream was successfully read until the end,
+        /// - `error` when destination stream was closed before the source stream ended,
+        /// - `error` when either the source or destination stream returned an error.
+        get: func() -> option<result<result<_, stream-error>>>;
     }
 }
