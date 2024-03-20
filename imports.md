@@ -93,6 +93,18 @@ being reaedy for I/O.</p>
 <ul>
 <li><a name="poll.0"></a> list&lt;<code>u32</code>&gt;</li>
 </ul>
+<h4><a name="poll"><code>check: func</code></a></h4>
+<p>Check for readiness on a set of pollables.</p>
+<p>Identical to poll, in taking a list of pollables and returning a <code>list&lt;u32&gt;</code> of handles in the argument list that are ready for I/O, but instead of blocking on at least one pollable in the list to be ready, this function immediately returns and may return an empty list if no pollables are currently ready.</p>
+<p>If the list contains more elements than can be indexed with a <code>u32</code> value, this function traps.</p>
+<h5>Params</h5>
+<ul>
+<li><a name="poll.in"><code>in</code></a>: list&lt;borrow&lt;<a href="#pollable"><a href="#pollable"><code>pollable</code></a></a>&gt;&gt;</li>
+</ul>
+<h5>Return values</h5>
+<ul>
+<li><a name="poll.0"></a> list&lt;<code>u32</code>&gt;</li>
+</ul>
 <h2><a name="wasi:io_streams_0.2.0">Import interface wasi:io/streams@0.2.0</a></h2>
 <p>WASI I/O is an I/O abstraction API which is currently focused on providing
 stream types.</p>
