@@ -198,10 +198,27 @@ interface streams {
         @since(version = 0.2.0)
         blocking-flush: func() -> result<_, stream-error>;
 
+        /// Request to flush buffered output and initiate a graceful shutdown
+        /// afterwards. This function never blocks.
+        ///
+        /// This behaves similar to `flush` in that after calling this function,
+        /// the stream will not accept any new writes and `check-write` returns
+        /// `ok(0)` while the flushing & closing is in progress. Unlike `flush`,
+        /// the stream never reverts to being writable again. The `subscribe`
+        /// pollable will become ready when the stream has fully closed.
+        @unstable(feature = io-output-stream-close)
+        close: func() -> result<_, stream-error>;
+
+        /// Functionally equivalent to calling `close` and then blocking until
+        /// it actually has been closed. After this method returns, all methods
+        /// on this stream return `stream-error::closed`.
+        @unstable(feature = io-output-stream-close)
+        blocking-close: func() -> result<_, stream-error>;
+
         /// Create a `pollable` which will resolve once the output-stream
-        /// is ready for more writing, or an error has occurred. When this
-        /// pollable is ready, `check-write` will return `ok(n)` with n>0, or an
-        /// error.
+        /// is ready for more writing, has closed, or an error has occurred.
+        /// When this pollable is ready, `check-write` will return `ok(n)`
+        /// with n>0, or an error.
         ///
         /// If the stream is closed, this pollable is always ready immediately.
         ///
