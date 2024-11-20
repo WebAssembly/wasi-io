@@ -395,6 +395,9 @@ let _ = this.check-write();         // eliding error handling
 <code>check-write</code> permitted length and the <code>len</code> provided to <code>splice</code></li>
 <li>calling <code>write</code> on the <a href="#output_stream"><code>output-stream</code></a> with that read data.</li>
 </ol>
+<p>This function behaves as-if these steps are performed atomically.
+I.e. if the read (in step 2) succeeds, but the write (in step 3) fails,
+future reads will first read from the buffer alread retrieved in step 2.</p>
 <p>Any error reported by the call to <code>check-write</code>, <code>read</code>, or
 <code>write</code> ends the splice and reports that error.</p>
 <p>This function returns the number of bytes transferred; it may be less
