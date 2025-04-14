@@ -325,9 +325,9 @@ and stream is ready for writing again.</p>
 </ul>
 <h4><a id="method_output_stream_subscribe"></a><code>[method]output-stream.subscribe: func</code></h4>
 <p>Create a <a href="#pollable"><code>pollable</code></a> which will resolve once the output-stream
-is ready for more writing, or an error has occurred. When this
-pollable is ready, <code>check-write</code> will return <code>ok(n)</code> with n&gt;0, or an
-error.</p>
+is ready for more writing, has closed, or an error has occurred.
+When this pollable is ready, <code>check-write</code> will return <code>ok(n)</code>
+with n&gt;0, or an error.</p>
 <p>If the stream is closed, this pollable is always ready immediately.</p>
 <p>The created <a href="#pollable"><code>pollable</code></a> is a child resource of the <a href="#output_stream"><code>output-stream</code></a>.
 Implementations may trap if the <a href="#output_stream"><code>output-stream</code></a> is dropped before
