@@ -261,6 +261,10 @@ interface streams {
         /// `check-write` permitted length and the `len` provided to `splice`
         /// 3. calling `write` on the `output-stream` with that read data.
         ///
+        /// This function behaves as-if these steps are performed atomically.
+        /// I.e. if the read (in step 2) succeeds, but the write (in step 3) fails,
+        /// future reads will first read from the buffer alread retrieved in step 2.
+        ///
         /// Any error reported by the call to `check-write`, `read`, or
         /// `write` ends the splice and reports that error.
         ///
