@@ -138,8 +138,7 @@ interface streams {
         /// When the destination of a `write` is binary data, the bytes from
         /// `contents` are written verbatim. When the destination of a `write` is
         /// known to the implementation to be text, the bytes of `contents` are
-        /// transcoded from UTF-8 into the encoding of the destination and then
-        /// written.
+        /// transcoded into the encoding of the destination and then written.
         ///
         /// Precondition: check-write gave permit of Ok(n) and contents has a
         /// length of less than or equal to n. Otherwise, this function will trap.
